@@ -1,0 +1,11 @@
+experiment,model,stage,wall_s,timed_out,stopped_manually,converged,best_data_objective,smoothed_p5_objective,objective_ratio_vs_smoothed,note
+P5_all_local,Heston,start 0,512,False,False,unknown,6.707035e-03,6.990878e-03,0.959,objective flat to 7 digits for the last ~100 evals
+P5_all_local,Heston,start 1,474,False,False,unknown,6.707035e-03,6.990878e-03,0.959,same point as start 0
+P5_all_local,Bates,start 0,549,False,False,unknown,5.797241e-03,6.457734e-03,0.898,flat from ~1300 evals
+P5_all_local,Bates,start 1,477,False,False,unknown,5.504410e-03,6.457734e-03,0.852,different local optimum from start 0 (5% lower)
+P5_all_local,HB-MJ,events-only,22,False,False,unknown,4.434523e-03,,,
+P5_all_local,HB-MJ,joint,50,False,True,False,1.621819e-03,6.903593e-05,23.5,stopped by user after 150 evals while still decreasing; NOT converged
+# Source: results/pooled/progress_P5_all_local_seed1.log (best cost per stage). Objectives are 0.5*sum of squared
+# vega-weighted IV residuals over the same 710 quotes (no smoothing rows), so they are directly comparable with the
+# smoothed P5 weighted_obj in pooled.csv. The fitted parameter vectors were held in memory and were lost when the run
+# was stopped; bound hits and status codes are therefore unavailable. Diagnostic only -- not the preferred specification.

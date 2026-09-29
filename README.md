@@ -135,7 +135,52 @@ Two tracks, one normalized schema (`src/schema.py`); calibration code reads only
   Bloomberg smile reconstruction, delta round trip, price bounds, bid/ask, butterfly and
   calendar arbitrage, timestamp consistency, event tags, schema, audit trail.
 
-## Literature, calibration, results, market context, limitations
+## Calibration framework (synthetic validation only; no market data fitted yet)
+
+**Single-date engine** (`src/calibration.py`): least squares on implied-vol errors (vega weights
+normalised per expiry, so short-dated contracts keep their weight), parameters optimised in
+transformed space (log / atanh / scaled linear), Heston → Bates → HB-MJ, each stage started
+from the previous one, multi-start, identifiability diagnostics. Synthetic findings
+(`results/calibration/`): Heston parameters recover to a few percent (κ weakest); Bates' λ, μ_J,
+σ_J are individually unstable but the jump variance rate and short-dated total variance are
+stable; event variance is identified only when expiries bracket the event; adjacent events with
+no separating expiry identify only their combined variance; with no pre-event expiry a
+single-date fit can land in a false optimum where diffusion variance absorbs event variance.
+Bates fitted to HB-MJ data matches the average vol level but cannot produce the discrete
+event-time step (`results/figures/bates_vs_hbmj_event_step.png`).
+
+**Pooled multi-date engine** (`src/pooled.py`): Heston/Bates state parameters are date-specific
+(default v0, θ, ρ; κ, σ and jump parameters shared), event variances are shared by event type
+across dates. Events that no contract in the panel can separate — no valuation time and no
+expiry between them — get one combined parameter (e.g. `combo_CPI+FOMC`). A 16:00 New York
+valuation between an FOMC (14:00 ET) and a next-day ECB separates them. Sharing by type is an
+assumption. One joint sparse least-squares problem; per-fit timeouts report "timed out", never
+"converged".
+
+Synthetic daily panels (19 Oct – 30 Nov 2026, ON/1W/2W/3W/1M, real event calendar, 0.05 vol-pt
+noise, 4 seeds; `results/pooled/`):
+
+| | Pooled HB-MJ | Single-date HB-MJ, same dates |
+|---|---|---|
+| Event-variance error (FOMC, ECB, CPI, NFP, CPI+FOMC combo) | ≤ 2.3% in every seed; exact noise-free | median FOMC −26%, p10–p90 of CPI/NFP up to +65–70% (nearby events only identified as sums on a single date) |
+| No ON tenor (single-date D3/D4 false-optimum case) | noise-free: exact; 0.05 vol pt: FOMC/ECB ±11–13%, θ poorly identified | 7% of dates in false optima |
+| Out of sample (leave 2W out) | HB-MJ 0.050 vol pts vs Bates 0.381, Heston 0.379 | — |
+
+**Daily-parameter specification.** Making every Heston/Bates parameter date-specific
+(8 per date) is weakly identified and numerically ill-conditioned: each date's κ and jump
+parameters rest on ~25 quotes, and the unregularised problem has near-flat directions.
+A temporal smoothness penalty (random-walk prior on the transformed daily parameters,
+`smooth=1e-4`) regularises the daily paths and makes pooled estimation practical; the default
+specification keeps only v0, θ, ρ date-specific. Diagnostic
+(`results/pooled/p5_all_local_diagnostic.csv`): without smoothing, the Heston and Bates stages
+took 8–9 minutes each; two Bates starts ended in different local optima (objectives 5% apart);
+and the HB-MJ stage had not converged when stopped (objective 23× the smoothed fit's). The
+smoothed all-local HB-MJ fit is already at the noise floor (IV RMSE 0.045 vol pts against 0.05
+vol-pt quote noise), so there is no material pricing gain left for the unsmoothed specification.
+Its lower Heston/Bates objectives (4–15%) come from daily parameters absorbing event variance
+that those models cannot represent — overfitting, not better pricing.
+
+## Literature, results, market context, limitations
 
 *TBD.*
 

@@ -64,7 +64,10 @@ def _lewis_nodes(U: float, k_max: float) -> tuple[np.ndarray, np.ndarray]:
     the interval, so panels are graded finely near 0. Beyond that, panel width is capped
     so that exp(-i u k) is resolved for the widest strike.
     """
-    width = min(5.0, np.pi / max(k_max, 1e-8))
+    # Width grows with the integration range (>= 100 panels over [0, U]); short expiries have U ~ 4096,
+    # so this cuts nodes ~8x vs a fixed width of 5. U/40 was too coarse: jump factors add features on
+    # scales 1/sigma_J and 2 pi/|mu_J| (~70-300) that 100-wide panels miss -- see test_bates/test_hbmj.
+    width = min(max(5.0, U / 100.0), np.pi / max(k_max, 1e-8))
     near = np.array([0.0, 0.0625, 0.125, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0])
     near = near[near < U]
     n_far = int(min(np.ceil((U - near[-1]) / width), 4000))

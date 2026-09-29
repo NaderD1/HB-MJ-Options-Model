@@ -1,0 +1,128 @@
+[1/98] single done
+[2/98] single done
+[3/98] single done
+[4/98] single done
+[5/98] single done
+[6/98] single done
+[7/98] single done
+[8/98] single done
+[9/98] single done
+[10/98] single done
+[11/98] single done
+[12/98] single done
+[13/98] single done
+[14/98] single done
+[15/98] single done
+[16/98] single done
+[17/98] single done
+[18/98] single done
+[19/98] single done
+[20/98] single done
+[21/98] single done
+[22/98] single done
+[23/98] single done
+[24/98] single done
+[25/98] oos done
+[26/98] single done
+[27/98] single done
+[28/98] single done
+[29/98] pooled done
+[30/98] single done
+[31/98] single done
+[32/98] single done
+[33/98] single done
+[34/98] single done
+[35/98] single done
+[36/98] single done
+[37/98] single done
+[38/98] single done
+[39/98] pooled done
+[40/98] pooled done
+[41/98] single done
+[42/98] single done
+[43/98] single done
+[44/98] single done
+[45/98] single done
+[46/98] single done
+[47/98] single done
+[48/98] single done
+[49/98] single done
+[50/98] single done
+[51/98] single done
+[52/98] pooled done
+[53/98] pooled done
+[54/98] single done
+[55/98] pooled done
+[56/98] single done
+[57/98] single done
+[58/98] single done
+[59/98] single done
+[60/98] single done
+[61/98] single done
+[62/98] single done
+[63/98] single done
+[64/98] single done
+[65/98] single done
+[66/98] single done
+[67/98] single done
+[68/98] single done
+[69/98] single done
+[70/98] single done
+[71/98] pooled done
+[72/98] single done
+[73/98] single done
+[74/98] single done
+[75/98] single done
+[76/98] single done
+[77/98] single done
+[78/98] single done
+[79/98] single done
+[80/98] single done
+[81/98] single done
+[82/98] single done
+[83/98] single done
+[84/98] single done
+[85/98] single done
+[86/98] single done
+[87/98] single done
+[88/98] single done
+[89/98] single done
+[90/98] single done
+[91/98] single done
+[92/98] single done
+[93/98] single done
+[94/98] single done
+[95/98] single done
+[96/98] pooled done
+concurrent.futures.process._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "C:\Users\Chrxn\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\process.py", line 254, in _process_worker
+    r = call_item.fn(*call_item.args, **call_item.kwargs)
+  File "C:\Users\Chrxn\OneDrive\Desktop\Heston Model\scripts\pooled_study.py", line 143, in _run
+    return fn(*args)
+  File "C:\Users\Chrxn\OneDrive\Desktop\Heston Model\scripts\pooled_study.py", line 90, in task_pooled
+    rows = _summarize_pooled(tag, nc, panel, truth)
+  File "C:\Users\Chrxn\OneDrive\Desktop\Heston Model\scripts\pooled_study.py", line 67, in _summarize_pooled
+    tru = np.array([d[k] for d in truth.daily])
+                    ~^^^
+KeyError: 'kappa'
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\Chrxn\OneDrive\Desktop\Heston Model\scripts\pooled_study.py", line 165, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Chrxn\OneDrive\Desktop\Heston Model\scripts\pooled_study.py", line 154, in main
+    kind, rows = fut.result()
+                 ~~~~~~~~~~^^
+  File "C:\Users\Chrxn\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Chrxn\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+KeyError: 'kappa'

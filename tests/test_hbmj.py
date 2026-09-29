@@ -161,3 +161,16 @@ def test_bates_and_hbmj_compared_on_identical_contracts():
     assert (table["iv_status"] == "ok").all()
     with pytest.raises(ValueError):
         contracts.K[0] = 1.0  # coordinates are read-only: no silent per-model rescaling
+
+
+@pytest.mark.parametrize("T", [0.5 * DAY, 1 * DAY, 7 * DAY])
+def test_integration_accurate_at_calibration_bound_extremes(T):
+    """Guards the adaptive panel width of the integration engine: sharp CF features from large mean
+    jumps (period 2 pi/|mu_J|), tiny jump dispersion and the largest allowed event sigma."""
+    h = HestonParams(kappa=2.0, theta=0.0064, sigma=0.6, rho=-0.3, v0=0.0036)
+    m = hbmj(h, PoissonJumps(lam=5.0, mu_J=-0.10, sigma_J=0.005),
+             ScheduledEventJumps(_events((0.25 * DAY, "FOMC")), {**SIGMAS, "FOMC": 0.03}))
+    K = F * np.exp(np.array([-0.15, -0.05, -0.01, 0.0, 0.01, 0.05]))
+    for k in K:
+        assert price_european(m, F, k, T, D, k >= F) == pytest.approx(
+            price_european_quad(m, F, k, T, D, k >= F), abs=1e-10)
