@@ -119,25 +119,18 @@ def test_integration_fft_and_reference_agree(T):
 
 
 # 5 ---------------------------------------------------------------------------
-def _delta_like_strikes(model, T):
-    """Strikes at -2, -1, 0, +1, +2 standard deviations of *this model's* ATM vol.
-
-    Markets quote smiles in delta, which scales with each model's own vol, so a model with a
-    higher ATM vol is compared at proportionally wider strikes (fixed strikes would be
-    misleading: they sit closer to the money, in sd terms, when vol is higher).
-    """
-    atm = _otm_iv(model, np.array([F]), T)[0]
-    return _strikes(T, vol=atm)
-
+# All model comparisons use the same fixed contract strikes (_strikes(T), i.e. +-1, +-2 sd of a
+# common 8% reference vol), never strikes rescaled to each model's own vol.
 
 def _bf_and_tails(model, T):
-    K = _delta_like_strikes(model, T)
+    K = _strikes(T)
     tails = price_european(model, F, K[[0, -1]], T, D, np.array([False, True]))
     return _butterfly(_otm_iv(model, K, T)), tails
 
 
 def test_more_jump_intensity_or_dispersion_steepens_1w_smile():
-    """At 1W, where Heston's variance has no time to move, jumps drive the smile's curvature."""
+    """For this parameterization at 1W, raising jump intensity or jump-size dispersion raises
+    both smile curvature and wing prices on fixed contracts."""
     prev = _bf_and_tails(HESTON, T_1W)
     for lam in (0.5, 2.0, 8.0, 32.0):
         cur = _bf_and_tails(bates(HESTON, lam=lam, mu_J=0.0, sigma_J=0.02), T_1W)
@@ -160,9 +153,9 @@ def test_many_small_jumps_average_out_at_long_maturity():
 
 # 6 ---------------------------------------------------------------------------
 def test_jump_effect_isolated_and_concentrated_at_short_maturities():
-    """Same Heston parameters, jumps on vs off: the extra curvature from jumps is positive and
-    largest at the shortest maturity, then declines monotonically (and may turn negative at 1Y,
-    see the CLT test above)."""
+    """Same Heston parameters and same contracts, jumps on vs off. For this parameterization
+    the extra curvature from jumps is largest at 1W and declines monotonically with maturity
+    (turning negative by 1Y, see the CLT test above)."""
     m = bates(HESTON, lam=2.0, mu_J=0.0, sigma_J=0.02)
     extra_bf = [_bf_and_tails(m, T)[0] - _bf_and_tails(HESTON, T)[0] for T in (T_1W, T_1M, 0.25, T_1Y)]
     assert extra_bf[0] > 0.003  # > 0.3 vol points at 1W

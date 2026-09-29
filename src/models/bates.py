@@ -23,9 +23,13 @@ and, because the sum of a Poisson number of iid terms has CF exp(lam T (E[e^{iuJ
 Checks built into the formula: phi_J(0) = 1 (probabilities sum to one) and
 phi_J(-i) = exp(lam T [ (1 + kbar) - 1 - kbar ]) = 1 (forward martingale).
 
-The jump factor is independent of T's *shape*: it adds a fixed amount of variance per
-unit time, lam (mu_J^2 + sigma_J^2), but its excess kurtosis scales like 1/T. That is why
-jumps matter most at short maturities, where Heston's variance has had no time to move.
+The jump factor adds a fixed amount of variance per unit time, lam (mu_J^2 + sigma_J^2),
+but its contribution to excess kurtosis scales like 1/T. Heston generates tail thickness
+through *changes* in variance, which take time to accumulate; for moderate vol-of-vol its
+short-dated smile is therefore mild (in our tested parameterization the 1W butterfly was
+~0.3 vol pts vs ~2.3 at 1Y). Heston can produce steep short-dated smiles, but typically
+only with very large vol-of-vol -- the tension Bates (1996) documents between option-implied
+and time-series behaviour of volatility. Jumps supply short-maturity kurtosis directly.
 """
 
 from __future__ import annotations
