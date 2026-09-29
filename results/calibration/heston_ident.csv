@@ -1,0 +1,5 @@
+case,model,condition_number,se_at_0.1volpt,flattest_direction,diagnostic_flags
+fx_typical,Heston,17.30553269720937,"{""v0"": 4.2e-05, ""kappa"": 0.261887, ""theta"": 0.00026, ""sigma"": 0.016462, ""rho"": 0.008546}","{""v0"": 0.001, ""kappa"": 0.928, ""theta"": -0.252, ""sigma"": 0.271, ""rho"": 0.052}",none
+fx_typical_noise5bp,Heston,17.47593434473856,"{""v0"": 4.2e-05, ""kappa"": 0.258944, ""theta"": 0.000271, ""sigma"": 0.016396, ""rho"": 0.008529}","{""v0"": -0.0, ""kappa"": -0.927, ""theta"": 0.258, ""sigma"": -0.268, ""rho"": -0.05}",none
+feller_violating,Heston,27.96811653515195,"{""v0"": 7e-05, ""kappa"": 0.116722, ""theta"": 0.00034, ""sigma"": 0.018761, ""rho"": 0.006863}","{""v0"": 0.031, ""kappa"": 0.985, ""theta"": -0.144, ""sigma"": 0.086, ""rho"": -0.019}",none
+feller_violating_noise5bp,Heston,28.679729360657706,"{""v0"": 7e-05, ""kappa"": 0.116139, ""theta"": 0.000355, ""sigma"": 0.018748, ""rho"": 0.006858}","{""v0"": 0.03, ""kappa"": 0.982, ""theta"": -0.167, ""sigma"": 0.083, ""rho"": -0.018}",none

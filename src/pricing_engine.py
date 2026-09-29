@@ -91,7 +91,7 @@ def call_prices_single_T(cf: CharFn, F: float, K: np.ndarray, T: float, D: float
 # --------------------------------------------------------------------------- #
 
 def carr_madan_grid(
-    cf: CharFn, T: float, alpha: float = 0.75, eta_max: float = 0.1, n_max: int = 2**18
+    cf: CharFn, T: float, alpha: float = 0.75, eta_max: float = 0.1, n_max: int = 2**21
 ) -> tuple[np.ndarray, np.ndarray]:
     """Normalised call prices c(k) = E[(e^X - e^k)^+] on an FFT log-strike grid.
 
@@ -120,7 +120,11 @@ def carr_madan_grid(
     U = _integration_limit(cf, T)
     lam = min(0.005, 0.4 / U)                  # log-strike spacing: >= ~15 points per std dev
     v_max = max(2 * np.pi / lam, U)
-    N = int(min(2 ** np.ceil(np.log2(v_max / eta_max)), n_max))
+    N = int(2 ** np.ceil(np.log2(v_max / eta_max)))
+    if N > n_max:
+        # Never degrade silently: capping N coarsens eta and biases every price (seen with high
+        # vol-of-vol at 1W: a constant -2.6e-5 offset). The FFT is a validation tool -- fail loudly.
+        raise ValueError(f"Carr-Madan grid needs N={N} > n_max={n_max} at T={T}; raise n_max or use integration")
     eta = v_max / N
     lam = 2 * np.pi / (N * eta)
     b = N * lam / 2

@@ -64,3 +64,19 @@ def test_fft_put_call_parity():
     c = price_european(EURUSD_LIKE, F, K, T, D, True, method="fft")
     p = price_european(EURUSD_LIKE, F, K, T, D, False, method="fft")
     np.testing.assert_allclose(c - p, D * (F - K), atol=1e-14)
+
+
+def test_fft_high_vol_of_vol_short_expiry_regression():
+    """Found by the calibration recovery study: sigma=0.9, T=1W needs a ~1M-point grid. When the
+    grid was silently capped at 2^18 the FFT carried a constant -2.6e-5 price offset."""
+    m = HestonParams(kappa=1.0, theta=0.0064, sigma=0.9, rho=0.3, v0=0.01)
+    F, D, T = 1.16, 0.999, 7 / 365
+    K = F * np.exp(np.linspace(-0.03, 0.03, 7))
+    np.testing.assert_allclose(price_european(m, F, K, T, D, K >= F, method="fft"),
+                               price_european(m, F, K, T, D, K >= F), atol=5e-9 * F)
+
+
+def test_fft_refuses_to_silently_coarsen_its_grid():
+    m = HestonParams(kappa=1.0, theta=0.0064, sigma=0.9, rho=0.3, v0=0.01)
+    with pytest.raises(ValueError, match="n_max"):
+        carr_madan_grid(m.cf, 7 / 365, n_max=2**18)

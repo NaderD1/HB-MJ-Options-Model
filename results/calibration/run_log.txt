@@ -1,0 +1,15 @@
+Heston fx_typical: best rmse 0 bp, FFT check 5.2e-13
+Heston fx_typical_noise5bp: best rmse 4.15 bp, FFT check 5.2e-13
+Heston feller_violating: best rmse 0 bp, FFT check 1.0e-13
+Heston feller_violating_noise5bp: best rmse 4.16 bp, FFT check 1.0e-13
+Bates weak_jumps: best rmse 3.26e-09 bp  lam=0.3 (true 0.3), Heston-only rmse 3.79 bp
+Bates strong_jumps: best rmse 0 bp  lam=6 (true 6.0), Heston-only rmse 14.9 bp
+Bates negative_mean_jumps: best rmse 0 bp  lam=1 (true 1.0), Heston-only rmse 28.6 bp
+Bates lambda_zero: best rmse 1.44e-08 bp  lam=2.152e-08 (true 0.0), Heston-only rmse 0 bp
+HB-MJ all_events_spanned: free=('FOMC', 'ECB', 'CPI', 'NFP') fitted={'sigma_FOMC': 0.006, 'sigma_ECB': 0.005, 'sigma_CPI': 0.004, 'sigma_NFP': 0.0035} rmse 4.29e-09 bp
+HB-MJ all_events_spanned_noise5bp: free=('FOMC', 'ECB', 'CPI', 'NFP') fitted={'sigma_FOMC': 0.00597, 'sigma_ECB': 0.00514, 'sigma_CPI': 0.00383, 'sigma_NFP': 0.00292} rmse 4.56 bp
+HB-MJ ecb_not_spanned: free=('FOMC', 'CPI', 'NFP') fitted={'sigma_FOMC': 0.006, 'sigma_ECB': 0.0, 'sigma_CPI': 0.004, 'sigma_NFP': 0.0035} rmse 6.49e-09 bp
+HB-MJ ecb_true_zero: free=('FOMC', 'ECB', 'CPI', 'NFP') fitted={'sigma_FOMC': 0.006, 'sigma_ECB': 0.0, 'sigma_CPI': 0.004, 'sigma_NFP': 0.0035} rmse 2.78e-08 bp
+HB-MJ all_sigmas_zero: free=('FOMC', 'ECB', 'CPI', 'NFP') fitted={'sigma_FOMC': 0.0, 'sigma_ECB': 0.0, 'sigma_CPI': 0.0, 'sigma_NFP': 0.0} rmse 6.05e-08 bp
+HB-MJ fomc_ecb_adjacent: free=('FOMC', 'ECB', 'CPI', 'NFP') fitted={'sigma_FOMC': 0.00643, 'sigma_ECB': 0.00443, 'sigma_CPI': 0.004, 'sigma_NFP': 0.0035} rmse 2.63e-09 bp
+written to C:\Users\Chrxn\OneDrive\Desktop\Heston Model\results\calibration

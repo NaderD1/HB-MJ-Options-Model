@@ -161,3 +161,43 @@ def implied_vol_array(
     vols = np.array([r.vol for r in results]).reshape(b[0].shape)
     statuses = np.array([r.status for r in results]).reshape(b[0].shape)
     return vols, statuses
+
+
+def implied_vol_fast(
+    price: ArrayLike, F: ArrayLike, K: ArrayLike, T: ArrayLike, D: ArrayLike, is_call: ArrayLike,
+    guess: ArrayLike | None = None, max_iter: int = 60,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Vectorised safeguarded Newton inversion of Black-76 (used inside calibration loops).
+
+    Newton steps from `guess` (e.g. the market vol, which is close to the model vol near a fit),
+    falling back to bisection whenever a step leaves the current bracket or vega is tiny.
+    The same no-arbitrage bounds as :func:`implied_vol` apply. Returns (vols, ok_mask);
+    vols are NaN where ok is False.
+    """
+    price, F, K, T, D = np.broadcast_arrays(*(np.asarray(x, dtype=float) for x in (price, F, K, T, D)))
+    is_call = np.broadcast_to(np.asarray(is_call, dtype=bool), price.shape)
+    intrinsic = D * np.where(is_call, np.maximum(F - K, 0.0), np.maximum(K - F, 0.0))
+    upper = D * np.where(is_call, F, K)
+    valid = np.isfinite(price) & (price > intrinsic + 1e-12 * np.maximum(1.0, F)) & (price < upper)
+    lo = np.full(price.shape, VOL_LOWER)
+    hi = np.full(price.shape, VOL_UPPER)
+    v = np.clip(np.asarray(guess, dtype=float) if guess is not None else np.full(price.shape, 0.2), 1e-4, 4.0)
+    v = np.broadcast_to(v, price.shape).copy()
+    tol = 1e-13 * np.maximum(F, 1e-12)
+    done = ~valid
+    for _ in range(max_iter):
+        f = black76_price(F, K, T, v, D, is_call) - price
+        conv = np.abs(f) < tol
+        done |= conv
+        if done.all():
+            break
+        lo = np.where(f < 0, v, lo)
+        hi = np.where(f > 0, v, hi)
+        vega = black76_vega(F, K, T, v, D)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            step = v - f / vega
+        bad = ~np.isfinite(step) | (step <= lo) | (step >= hi) | (vega < 1e-14)
+        v = np.where(done, v, np.where(bad, 0.5 * (lo + hi), step))
+    f = black76_price(F, K, T, v, D, is_call) - price
+    ok = valid & ((np.abs(f) < 1e3 * tol) | (hi - lo < 1e-12))
+    return np.where(ok, v, np.nan), ok

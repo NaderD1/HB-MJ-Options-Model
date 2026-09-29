@@ -1,0 +1,3 @@
+case,rmse_best_bp,rmse_other_bp,param_rel_diff
+all_sigmas_zero,6.049633810688849e-08,9.582898771575348e-08,"{'sigma_FOMC': 0.06427353733735218, 'sigma_NFP': 0.06951553790560402}"
+fomc_ecb_adjacent,2.6319765613231356e-09,2.651215406668767e-09,"{'sigma_FOMC': -0.14100837968106456, 'sigma_ECB': 0.24539521687484883}"
