@@ -12,6 +12,7 @@ market convention -- missing or contradictory convention fields raise Convention
 
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 import json
 from dataclasses import dataclass, field
@@ -21,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 from src.events import EventCalendar
+from src.fx_calendar import is_business_day, option_dates
 from src.fx_conventions import BF_TYPES, DELTA_TYPES, ATM_TYPES, FXConventions, build_smile
 from src.models.black_scholes import black76_price, implied_vol
 from src.schema import conform, empty_frame
@@ -40,7 +42,8 @@ def _jsonable(row: pd.Series) -> str:
 
 
 def _tags(calendar: EventCalendar, valuation: pd.Timestamp, expiry: pd.Timestamp) -> dict:
-    return calendar.tag(valuation, expiry)
+    """As-known-at-valuation event tags (used for pricing/evaluation) + realized ids for audit."""
+    return calendar.tag_both(valuation, expiry)
 
 
 # =========================================================================== #
@@ -48,7 +51,10 @@ def _tags(calendar: EventCalendar, valuation: pd.Timestamp, expiry: pd.Timestamp
 # =========================================================================== #
 
 EXPIRY_CUTS = {"NY10": ("10:00", "America/New_York"), "TOK15": ("15:00", "Asia/Tokyo")}
-REQUIRED_BBG = ["valuation_ts", "pair", "spot", "tenor", "expiry_date", "atm", "rr25", "bf25", "vol_units"]
+REQUIRED_BBG = ["valuation_ts", "pair", "spot", "tenor", "atm", "rr25", "bf25", "vol_units"]
+# FX value dates roll at 17:00 New York: a quote stamped at or after 17:00 NY belongs to the
+# next trade date.
+FX_ROLL = ("17:00", "America/New_York")
 CONVENTION_FIELDS = ["delta_type", "atm_type", "bf_type", "premium_currency", "rr_sign"]
 
 
@@ -85,7 +91,56 @@ def _bbg_timestamp(row: pd.Series, where: str) -> pd.Timestamp:
     return to_utc(t)
 
 
-def _bbg_expiry(row: pd.Series, where: str) -> pd.Timestamp:
+def fx_trade_date(valuation: pd.Timestamp) -> dt.date:
+    """FX trade date of a timestamp: New York date, rolled to the next weekday at/after 17:00 NY."""
+    ny = to_utc(valuation).tz_convert(FX_ROLL[1])
+    d = ny.date()
+    if (ny.hour, ny.minute) >= (17, 0):
+        d += dt.timedelta(days=1)
+    while d.weekday() >= 5:
+        d += dt.timedelta(days=1)
+    return d
+
+
+def _present(row: pd.Series, col: str) -> bool:
+    return col in row and not pd.isna(row.get(col)) and str(row.get(col)).strip() != ""
+
+
+def _bbg_dates(row: pd.Series, valuation: pd.Timestamp, where: str, allow_roller: bool) -> tuple[dict, list[str]]:
+    """Spot, expiry and delivery dates. Exported dates always win; the FX roller fills gaps only
+    when explicitly allowed (i.e. after it has been validated against OVML), and every
+    disagreement between an exported date and the roller is flagged for the validation study."""
+    rolled = option_dates(fx_trade_date(valuation), str(row.tenor))
+    flags, out = [], {}
+    for key, col in (("spot", "spot_date"), ("expiry", "expiry_date"), ("delivery", "delivery_date")):
+        if _present(row, col):
+            out[key] = pd.Timestamp(str(row[col])).date()
+            if rolled[key] is None:
+                cands = ",".join(d.isoformat() for d in rolled["expiry_candidates"])
+                flags.append(f"roller_expiry_ambiguous:{cands}")
+            elif out[key] != rolled[key]:
+                flags.append(f"roller_mismatch_{key}:{rolled[key].isoformat()}")
+        elif allow_roller:
+            if rolled[key] is None:
+                raise ConventionAmbiguityError(
+                    f"{where}: the FX roller cannot determine the {row.tenor} expiry (holidays break the "
+                    f"delivery->expiry inverse; candidates {rolled['expiry_candidates']}). Export expiry_date from OVML."
+                )
+            out[key] = rolled[key]
+            flags.append(f"{key}_date_from_roller")
+        else:
+            raise ConventionAmbiguityError(
+                f"{where}: {col} missing. Export it from OVML, or pass allow_roller_dates=True once the "
+                f"FX date roller has been validated against Bloomberg (docs/bloomberg_validation_table.csv)."
+            )
+    for key in ("spot", "delivery"):
+        if not is_business_day(out[key], "EURUSD"):
+            flags.append(f"{key}_date_not_joint_business_day")
+    source = "export" if not any(f.endswith("_from_roller") for f in flags) else "fx_roller"
+    return {**out, "source": source}, flags
+
+
+def _bbg_expiry(row: pd.Series, expiry_date, where: str) -> pd.Timestamp:
     cut = row.get("expiry_cut")
     if cut is not None and not pd.isna(cut) and str(cut) in EXPIRY_CUTS:
         time, tz = EXPIRY_CUTS[str(cut)]
@@ -93,7 +148,7 @@ def _bbg_expiry(row: pd.Series, where: str) -> pd.Timestamp:
         time, tz = str(row.expiry_time), str(row.expiry_tz)
     else:
         raise ConventionAmbiguityError(f"{where}: expiry cut unknown (give expiry_cut=NY10/TOK15 or expiry_time+expiry_tz)")
-    return localize(str(row.expiry_date), time, tz)
+    return localize(str(expiry_date), time, tz)
 
 
 def _vol_scale(row: pd.Series, where: str) -> float:
@@ -114,19 +169,30 @@ def _bbg_forward(row: pd.Series, where: str) -> float:
     raise ConventionAmbiguityError(f"{where}: need 'forward' or 'fwd_points' (+ fwd_points_scale)")
 
 
-def _simple_act360_df(rate_pct: float, start: pd.Timestamp, end_date: str) -> float:
-    days = (pd.Timestamp(end_date).tz_localize("UTC").normalize() - start.normalize()).days
+def _simple_act360_df(rate_pct: float, start, end) -> float:
+    days = (pd.Timestamp(end) - pd.Timestamp(start)).days
     return 1.0 / (1.0 + rate_pct / 100.0 * days / 360.0)
 
 
-def _bbg_usd_df(row: pd.Series, valuation: pd.Timestamp, where: str) -> float:
-    if "usd_df" in row and not pd.isna(row.get("usd_df")):
-        return float(row.usd_df)
-    if "usd_depo_rate" in row and not pd.isna(row.get("usd_depo_rate")):
-        if "delivery_date" not in row or pd.isna(row.get("delivery_date")):
-            raise ConventionAmbiguityError(f"{where}: usd_depo_rate needs delivery_date (ACT/360 to delivery)")
-        return _simple_act360_df(float(row.usd_depo_rate), valuation, str(row.delivery_date))
-    raise ConventionAmbiguityError(f"{where}: need 'usd_df' or 'usd_depo_rate' for discounting")
+def _bbg_df(row: pd.Series, ccy: str, spot_d, delivery_d, where: str, required: bool) -> float | None:
+    """Discount factor from the SPOT date to the DELIVERY date.
+
+    FX option premiums are paid on the spot date and the exercised FX deal settles on the
+    delivery date, so the premium quoted by the market is  DF(spot -> delivery) * E[payoff at
+    delivery], with the forward to the delivery date. Deposit rates are ACT/360 simple from
+    spot to delivery. A directly exported discount factor must state its start date.
+    """
+    c = ccy.lower()
+    if _present(row, f"{c}_df"):
+        start = str(row.get(f"{c}_df_start", "")).strip().lower()
+        if start != "spot":
+            raise ConventionAmbiguityError(f"{where}: {c}_df given but {c}_df_start is {start!r}; only 'spot' (spot->delivery) is accepted")
+        return float(row[f"{c}_df"])
+    if _present(row, f"{c}_depo_rate"):
+        return _simple_act360_df(float(row[f"{c}_depo_rate"]), spot_d, delivery_d)
+    if required:
+        raise ConventionAmbiguityError(f"{where}: need '{c}_df' (+ {c}_df_start=spot) or '{c}_depo_rate'")
+    return None
 
 
 def _wing_spreads(row: pd.Series, scale: float, tag: str) -> float | None:
@@ -138,8 +204,12 @@ def _wing_spreads(row: pd.Series, scale: float, tag: str) -> float | None:
         return None
 
 
-def load_bloomberg_csv(path: str | Path, calendar: EventCalendar | None = None) -> pd.DataFrame:
-    """Bloomberg EUR/USD vol-surface export (one row per valuation x tenor) -> normalized quotes."""
+def load_bloomberg_csv(path: str | Path, calendar: EventCalendar | None = None, allow_roller_dates: bool = False) -> pd.DataFrame:
+    """Bloomberg EUR/USD vol-surface export (one row per valuation x tenor) -> normalized quotes.
+
+    Timing: T runs from valuation to the expiry cut (diffusion clock); the forward is to the
+    delivery date; df_dom discounts from the spot date (premium payment) to delivery.
+    """
     path = Path(path)
     calendar = calendar or EventCalendar.from_csv()
     raw = pd.read_csv(path)
@@ -151,12 +221,17 @@ def load_bloomberg_csv(path: str | Path, calendar: EventCalendar | None = None) 
     for i, r in raw.iterrows():
         where = f"{path.name} row {i}"
         conv = _bbg_conventions(r, where)
-        valuation, expiry = _bbg_timestamp(r, where), _bbg_expiry(r, where)
+        valuation = _bbg_timestamp(r, where)
+        dates, date_flags = _bbg_dates(r, valuation, where, allow_roller_dates)
+        expiry = _bbg_expiry(r, dates["expiry"], where)
         T = year_fraction(valuation, expiry)
         if T <= 0:
             raise ValueError(f"{where}: expiry {expiry} is not after valuation {valuation}")
-        S, F, D = float(r.spot), _bbg_forward(r, where), _bbg_usd_df(r, valuation, where)
-        D_f = F * D / S  # foreign DF implied by the market forward (includes any cross-currency basis)
+        if not dates["spot"] < dates["delivery"] or dates["delivery"] < dates["expiry"]:
+            raise ValueError(f"{where}: inconsistent dates {dates}")
+        S, F = float(r.spot), _bbg_forward(r, where)
+        D = _bbg_df(r, "USD", dates["spot"], dates["delivery"], where, required=True)
+        D_f = F * D / S  # EUR DF (spot->delivery) implied by the market forward (includes cross-currency basis)
         sc = _vol_scale(r, where)
         quotes = {0.25: (float(r.rr25) * sc, float(r.bf25) * sc)}
         if "rr10" in r and "bf10" in r and not pd.isna(r.rr10) and not pd.isna(r.bf10):
@@ -169,7 +244,7 @@ def load_bloomberg_csv(path: str | Path, calendar: EventCalendar | None = None) 
         source = "bloomberg" if research else f"bloomberg_format_{origin}"
         conv_str = f"{conv.delta_type}/{conv.atm_type}/{conv.bf_type}/{conv.premium_currency}"
         for p in points:
-            flags = [] if research else [f"non_research_origin_{origin}"]
+            flags = ([] if research else [f"non_research_origin_{origin}"]) + date_flags
             if p.bucket == "ATM" and "atm_bid" in r and not pd.isna(r.get("atm_bid")):
                 bid, ask = float(r.atm_bid) * sc, float(r.atm_ask) * sc
             else:
@@ -186,6 +261,8 @@ def load_bloomberg_csv(path: str | Path, calendar: EventCalendar | None = None) 
                 "pair": str(r.pair).upper(), "valuation_ts_utc": valuation, "expiry_ts_utc": expiry, "T": T,
                 "tenor": str(r.tenor), "strike": p.strike, "is_call": p.is_call, "bucket": p.bucket,
                 "quoted_delta": p.delta if p.bucket != "ATM" else np.nan, "delta_convention": conv_str,
+                "spot_date": dates["spot"].isoformat(), "delivery_date": dates["delivery"].isoformat(),
+                "dates_source": dates["source"],
                 "spot": S, "forward": F, "df_dom": D, "df_for": D_f,
                 "iv_mid": p.vol, "iv_bid": bid, "iv_ask": ask,
                 "price_mid": float(black76_price(F, p.strike, T, p.vol, D, p.is_call)),
@@ -336,7 +413,7 @@ def normalize_fxe(
         if not np.isfinite(F):
             report["dropped"][f"no_parity_{exp}"] = len(g)
             continue
-        tags = calendar.tag(valuation, expiry)
+        tags = _tags(calendar, valuation, expiry)
         otm = g[((g.cp == "C") & (g.strike >= F)) | ((g.cp == "P") & (g.strike < F))]
         for _, q in otm.iterrows():
             is_call = q.cp == "C"
@@ -356,7 +433,8 @@ def normalize_fxe(
                 "raw_fields": _jsonable(q.drop(labels=["row_id", "mid"])),
                 "pair": "FXE", "valuation_ts_utc": valuation, "expiry_ts_utc": expiry, "T": T, "tenor": "listed",
                 "strike": float(q.strike), "is_call": bool(is_call), "bucket": "listed", "quoted_delta": np.nan,
-                "delta_convention": "n/a", "spot": spot, "forward": F, "df_dom": D, "df_for": F * D / spot,
+                "delta_convention": "n/a", "spot_date": "n/a", "delivery_date": "n/a", "dates_source": "listed",
+                "spot": spot, "forward": F, "df_dom": D, "df_for": F * D / spot,
                 "iv_mid": iv.vol, "iv_bid": ivb, "iv_ask": iva, "price_mid": float(q.mid),
                 **tags, "quality_flags": ";".join(flags),
             })

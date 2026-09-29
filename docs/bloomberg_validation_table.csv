@@ -1,0 +1,9 @@
+data_origin,valuation_ts,valuation_tz,bbg_pricing_source,pair,tenor,spot,fwd_points,fwd_points_scale,usd_depo_rate,eur_depo_rate,vol_units,atm,rr25,bf25,rr10,bf10,delta_type,atm_type,bf_type,premium_currency,rr_sign,spot_date,expiry_date,expiry_cut,expiry_time,expiry_tz,delivery_date,bbg_K_ATM,bbg_vol_ATM,bbg_K_25DC,bbg_vol_25DC,bbg_K_25DP,bbg_vol_25DP,bbg_K_10DC,bbg_vol_10DC,bbg_K_10DP,bbg_vol_10DP,bbg_premium_ATM_call_usd_pips,notes
+bloomberg,,,,EURUSD,ON,,,10000,,,pct,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+bloomberg,,,,EURUSD,1W,,,10000,,,pct,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+bloomberg,,,,EURUSD,2W,,,10000,,,pct,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+bloomberg,,,,EURUSD,1M,,,10000,,,pct,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+bloomberg,,,,EURUSD,2M,,,10000,,,pct,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+bloomberg,,,,EURUSD,3M,,,10000,,,pct,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+bloomberg,,,,EURUSD,6M,,,10000,,,pct,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+bloomberg,,,,EURUSD,1Y,,,10000,,,pct,,,,,,,,,,,,,,,,,,,,,,,,,,,,

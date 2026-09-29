@@ -39,10 +39,13 @@ CPI-2025-06-11,CPI,2025-06-11,08:30,America/New_York,released,2025-05,,https://w
 CPI-2025-07-15,CPI,2025-07-15,08:30,America/New_York,released,2025-06,,https://www.bls.gov/bls/news-release/cpi.htm,2026-09-29T00:00:00Z,
 CPI-2025-08-12,CPI,2025-08-12,08:30,America/New_York,released,2025-07,,https://www.bls.gov/bls/news-release/cpi.htm,2026-09-29T00:00:00Z,
 CPI-2025-09-11,CPI,2025-09-11,08:30,America/New_York,released,2025-08,,https://www.bls.gov/bls/news-release/cpi.htm,2026-09-29T00:00:00Z,
-CPI-2025-10-24,CPI,2025-10-24,08:30,America/New_York,released,2025-09,,https://www.bls.gov/bls/news-release/cpi.htm,2026-09-29T00:00:00Z,released during 2025 appropriations lapse
+CPI-2025-10-15,CPI,2025-10-15,08:30,America/New_York,superseded,2025-09,,https://www.bls.gov/bls/092025-cpi-reschedule-notice.htm,2026-09-29T00:00:00Z,original Sep-2025 CPI date; moved to 2025-10-24 (2025 lapse)
+CPI-2025-10-24,CPI,2025-10-24,08:30,America/New_York,released,2025-09,2025-10-15,https://www.bls.gov/bls/news-release/cpi.htm,2026-09-29T00:00:00Z,released during 2025 appropriations lapse
 CPI-2025-11-13,CPI,2025-11-13,08:30,America/New_York,canceled,2025-10,2025-11-13,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,Oct-2025 CPI not published (2025 lapse); excluded
+CPI-2025-12-10,CPI,2025-12-10,08:30,America/New_York,superseded,2025-11,,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,original Nov-2025 CPI date; moved to 2025-12-18
 CPI-2025-12-18,CPI,2025-12-18,08:30,America/New_York,released,2025-11,2025-12-10,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,rescheduled from 2025-12-10 (2025 lapse)
 CPI-2026-01-13,CPI,2026-01-13,08:30,America/New_York,released,2025-12,,https://www.bls.gov/bls/news-release/cpi.htm,2026-09-29T00:00:00Z,
+CPI-2026-02-11,CPI,2026-02-11,08:30,America/New_York,superseded,2026-01,,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,original Jan-2026 CPI date; moved to 2026-02-13 (2026 lapse)
 CPI-2026-02-13,CPI,2026-02-13,08:30,America/New_York,released,2026-01,2026-02-11,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,rescheduled from 2026-02-11 (2026 lapse)
 CPI-2026-03-11,CPI,2026-03-11,08:30,America/New_York,released,2026-02,,https://www.bls.gov/bls/news-release/cpi.htm,2026-09-29T00:00:00Z,
 CPI-2026-04-10,CPI,2026-04-10,08:30,America/New_York,released,2026-03,,https://www.bls.gov/bls/news-release/cpi.htm,2026-09-29T00:00:00Z,
@@ -63,9 +66,12 @@ NFP-2025-07-03,NFP,2025-07-03,08:30,America/New_York,released,2025-06,,https://w
 NFP-2025-08-01,NFP,2025-08-01,08:30,America/New_York,released,2025-07,,https://www.bls.gov/bls/news-release/empsit.htm,2026-09-29T00:00:00Z,
 NFP-2025-09-05,NFP,2025-09-05,08:30,America/New_York,released,2025-08,,https://www.bls.gov/bls/news-release/empsit.htm,2026-09-29T00:00:00Z,
 NFP-2025-11-07,NFP,2025-11-07,08:30,America/New_York,canceled,2025-10,2025-11-07,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,Oct-2025 Employment Situation not published (2025 lapse); excluded
-NFP-2025-11-20,NFP,2025-11-20,08:30,America/New_York,released,2025-09,,https://www.bls.gov/bls/news-release/empsit.htm,2026-09-29T00:00:00Z,Sep-2025 report delayed by 2025 appropriations lapse
+NFP-2025-10-03,NFP,2025-10-03,08:30,America/New_York,superseded,2025-09,,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,original Sep-2025 NFP date; moved to 2025-11-20 (2025 lapse)
+NFP-2025-11-20,NFP,2025-11-20,08:30,America/New_York,released,2025-09,2025-10-03,https://www.bls.gov/bls/news-release/empsit.htm,2026-09-29T00:00:00Z,Sep-2025 report delayed by 2025 appropriations lapse
+NFP-2025-12-05,NFP,2025-12-05,08:30,America/New_York,superseded,2025-11,,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,original Nov-2025 NFP date; moved to 2025-12-16
 NFP-2025-12-16,NFP,2025-12-16,08:30,America/New_York,released,2025-11,2025-12-05,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,rescheduled from 2025-12-05 (2025 lapse)
 NFP-2026-01-09,NFP,2026-01-09,08:30,America/New_York,released,2025-12,,https://www.bls.gov/bls/news-release/empsit.htm,2026-09-29T00:00:00Z,
+NFP-2026-02-06,NFP,2026-02-06,08:30,America/New_York,superseded,2026-01,,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,original Jan-2026 NFP date; moved to 2026-02-11 (2026 lapse)
 NFP-2026-02-11,NFP,2026-02-11,08:30,America/New_York,released,2026-01,2026-02-06,https://www.bls.gov/bls/2025-lapse-revised-release-dates.htm,2026-09-29T00:00:00Z,rescheduled from 2026-02-06 (2026 lapse)
 NFP-2026-03-06,NFP,2026-03-06,08:30,America/New_York,released,2026-02,,https://www.bls.gov/bls/news-release/empsit.htm,2026-09-29T00:00:00Z,
 NFP-2026-04-03,NFP,2026-04-03,08:30,America/New_York,released,2026-03,,https://www.bls.gov/bls/news-release/empsit.htm,2026-09-29T00:00:00Z,

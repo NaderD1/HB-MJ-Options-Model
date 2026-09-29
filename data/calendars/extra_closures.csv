@@ -1,0 +1,3 @@
+# Ad hoc settlement closures not covered by the standard USD (Fed) / EUR (TARGET2) rules.
+# One row per closure; currency = USD or EUR. Add with a source. Empty by default.
+date,currency,source,notes

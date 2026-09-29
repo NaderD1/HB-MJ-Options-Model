@@ -190,13 +190,38 @@ def check_time(df):
 def check_event_tags(df, calendar: EventCalendar):
     bad = []
     for (v, x), g in df.groupby(["valuation_ts_utc", "expiry_ts_utc"]):
-        tag = calendar.tag(v, x)
+        tag = calendar.tag_both(v, x)
         T = g["T"].iloc[0]
-        model_n = len(ScheduledEventJumps(calendar.scheduled_events(v), {k: 0.0 for k in ("FOMC", "ECB", "CPI", "NFP")}).events_before(T))
+        model_ids = ";".join(e.event_id for e in ScheduledEventJumps(
+            calendar.scheduled_events(v, vintage="as_known"), {k: 0.0 for k in ("FOMC", "ECB", "CPI", "NFP")}
+        ).events_before(T))
         for _, r in g.iterrows():
-            if r.n_events != tag["n_events"] or r.event_ids != tag["event_ids"] or r.n_events != model_n:
+            if (r.n_events != tag["n_events"] or r.event_ids != tag["event_ids"] or r.event_ids != model_ids
+                    or r.event_ids_realized != tag["event_ids_realized"] or r.schedule_uncertain != tag["schedule_uncertain"]):
                 bad.append(r.quote_id)
-    return _result("event_tags", len(df), bad, np.nan, 0, "row tags == calendar.tag == HB-MJ events_before(T)")
+    return _result("event_tags", len(df), bad, np.nan, 0,
+                   "as-known tags == calendar == HB-MJ events_before(T); realized ids kept")
+
+
+def check_settlement_dates(df):
+    """Bloomberg rows: spot < delivery, expiry <= delivery, spot/delivery are joint business days."""
+    from src.fx_calendar import is_business_day
+    b = df[df.bucket != "listed"]
+    bad = []
+    for _, r in b.iterrows():
+        s_d, d_d = pd.Timestamp(r.spot_date).date(), pd.Timestamp(r.delivery_date).date()
+        e_d = r.expiry_ts_utc.tz_convert("America/New_York").date()
+        if not (s_d < d_d and e_d <= d_d and is_business_day(s_d, "EURUSD") and is_business_day(d_d, "EURUSD")):
+            bad.append(r.quote_id)
+    return _result("settlement_dates", len(b), bad, np.nan, 0, "spot < delivery, expiry <= delivery, joint business days")
+
+
+def check_roller_agreement(df):
+    """Information: exported Bloomberg dates vs the FX date roller (the roller validation study)."""
+    b = df[(df.bucket == "ATM") & (df.dates_source == "export")]
+    mism = b.quote_id[b.quality_flags.str.contains("roller_mismatch")].tolist()
+    return _result("roller_agreement_info", len(b), [], float(len(mism)), np.nan,
+                   f"{len(mism)} tenor rows where exported dates differ from the roller" + (f": {mism[:5]}" if mism else ""))
 
 
 def check_schema(df):
@@ -223,6 +248,6 @@ def run_validation(df: pd.DataFrame, calendar: EventCalendar | None = None) -> p
         check_schema(df), check_audit(df), check_time(df), check_forward_consistency(df), check_cip_basis(df),
         check_price_vol_consistency(df), check_smile_reconstruction(df), check_delta_round_trip(df),
         check_price_bounds(df), check_bid_ask(df), check_butterfly(df), check_calendar(df),
-        check_event_tags(df, calendar),
+        check_event_tags(df, calendar), check_settlement_dates(df), check_roller_agreement(df),
     ]
     return pd.DataFrame(checks)

@@ -83,9 +83,9 @@ def test_bloomberg_loader_refuses_to_guess(tmp_path, changes, match):
 
 def test_bloomberg_timestamps_and_T(bbg):
     one_w = bbg[bbg.tenor == "1W"].iloc[0]
-    assert one_w.valuation_ts_utc == pd.Timestamp("2026-10-26T21:00:00Z")  # 17:00 EDT
+    assert one_w.valuation_ts_utc == pd.Timestamp("2026-10-26T20:00:00Z")  # 16:00 EDT
     assert one_w.expiry_ts_utc == pd.Timestamp("2026-11-02T15:00:00Z")      # NY 10:00 cut, EST after 1 Nov
-    assert one_w["T"] == pytest.approx((6 * 86400 + 18 * 3600) / (365 * 86400), abs=1e-15)
+    assert one_w["T"] == pytest.approx((6 * 86400 + 19 * 3600) / (365 * 86400), abs=1e-15)
 
 
 def test_bloomberg_audit_trail(bbg):
@@ -125,3 +125,52 @@ def test_both_sources_produce_identical_schema(bbg):
     assert validate_schema(fxe) == [] and validate_schema(bbg) == []
     for c in COLUMNS:
         assert (fxe[c].dtype.kind == bbg[c].dtype.kind) or (fxe[c].dtype == object and bbg[c].dtype == object), c
+
+
+# ---------------------------------------------------------------- settlement timing
+def test_discounting_runs_from_spot_date_to_delivery(bbg):
+    raw = pd.read_csv(EXAMPLE)
+    for _, r in bbg[bbg.bucket == "ATM"].iterrows():
+        src = raw[raw.tenor == r.tenor].iloc[0]
+        days = (pd.Timestamp(src.delivery_date) - pd.Timestamp(src.spot_date)).days
+        assert r.df_dom == pytest.approx(1 / (1 + src.usd_depo_rate / 100 * days / 360), abs=1e-15)
+        assert r.spot_date == src.spot_date and r.delivery_date == src.delivery_date and r.dates_source == "export"
+
+
+def test_missing_dates_need_explicit_roller_permission(tmp_path):
+    p = _write_variant(tmp_path, delivery_date=None, spot_date=None)
+    with pytest.raises(ConventionAmbiguityError, match="allow_roller_dates"):
+        load_bloomberg_csv(p)
+    df = load_bloomberg_csv(p, allow_roller_dates=True)
+    assert (df.dates_source == "fx_roller").all()
+    assert df.quality_flags.str.contains("delivery_date_from_roller").all()
+
+
+def test_roller_never_fills_an_ambiguous_expiry(tmp_path):
+    p = _write_variant(tmp_path, expiry_date=None)
+    with pytest.raises(ConventionAmbiguityError, match="cannot determine the 1M expiry"):
+        load_bloomberg_csv(p, allow_roller_dates=True)
+
+
+def test_exported_expiry_where_roller_is_ambiguous_is_flagged(bbg):
+    one_m = bbg[bbg.tenor == "1M"]
+    assert one_m.quality_flags.str.contains("roller_expiry_ambiguous:2026-11-24,2026-11-25,2026-11-27").all()
+
+
+def test_exported_dates_that_disagree_with_roller_are_flagged(tmp_path):
+    raw = pd.read_csv(EXAMPLE)
+    raw.loc[raw.tenor == "1M", "delivery_date"] = "2026-12-01"
+    p = tmp_path / "mismatch.csv"
+    raw.to_csv(p, index=False)
+    df = load_bloomberg_csv(p)
+    one_m = df[df.tenor == "1M"]
+    assert one_m.delivery_date.eq("2026-12-01").all()           # exported date wins
+    assert one_m.quality_flags.str.contains("roller_mismatch_delivery:2026-11-30").all()
+
+
+def test_discount_factor_must_state_its_start_date(tmp_path):
+    p = _write_variant(tmp_path, usd_depo_rate=None, usd_df=0.999)
+    with pytest.raises(ConventionAmbiguityError, match="usd_df_start"):
+        load_bloomberg_csv(p)
+    df = load_bloomberg_csv(_write_variant(tmp_path, usd_depo_rate=None, usd_df=0.999, usd_df_start="spot"))
+    assert (df.df_dom == 0.999).all()

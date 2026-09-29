@@ -1,0 +1,72 @@
+# USD settlement calendar for the EUR/USD roller: days the Federal Reserve Banks are CLOSED
+# (Fedwire Funds settlement unavailable). Transcribed from Federal Reserve Board K.8
+# 'Holidays Observed by the Federal Reserve System'. reserve_banks_closed_on is blank when
+# a holiday falls on Saturday: the Reserve Banks are OPEN the preceding Friday.
+# Coverage: 2025-2030. Years outside this table raise an error (no rule-based fallback).
+year,holiday,official_date,reserve_banks_closed_on,source_url,note
+2025,New Year's Day,2025-01-01,2025-01-01,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2025,MLK Day,2025-01-20,2025-01-20,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,Reserve Banks closed for MLK Day (also Inauguration Day for the Board)
+2025,Washington's Birthday,2025-02-17,2025-02-17,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2025,Memorial Day,2025-05-26,2025-05-26,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2025,Juneteenth,2025-06-19,2025-06-19,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2025,Independence Day,2025-07-04,2025-07-04,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2025,Labor Day,2025-09-01,2025-09-01,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2025,Columbus Day,2025-10-13,2025-10-13,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2025,Veterans Day,2025-11-11,2025-11-11,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2025,Thanksgiving Day,2025-11-27,2025-11-27,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2025,Christmas Day,2025-12-25,2025-12-25,https://web.archive.org/web/20250617052551/https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,New Year's Day,2026-01-01,2026-01-01,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,MLK Day,2026-01-19,2026-01-19,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,Washington's Birthday,2026-02-16,2026-02-16,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,Memorial Day,2026-05-25,2026-05-25,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,Juneteenth,2026-06-19,2026-06-19,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,Independence Day,2026-07-04,,https://www.federalreserve.gov/aboutthefed/k8.htm,Saturday: Reserve Banks open Fri 2026-07-03 (K.8 footnote *)
+2026,Labor Day,2026-09-07,2026-09-07,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,Columbus Day,2026-10-12,2026-10-12,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,Veterans Day,2026-11-11,2026-11-11,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,Thanksgiving Day,2026-11-26,2026-11-26,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2026,Christmas Day,2026-12-25,2026-12-25,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2027,New Year's Day,2027-01-01,2027-01-01,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2027,MLK Day,2027-01-18,2027-01-18,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2027,Washington's Birthday,2027-02-15,2027-02-15,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2027,Memorial Day,2027-05-31,2027-05-31,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2027,Juneteenth,2027-06-19,,https://www.federalreserve.gov/aboutthefed/k8.htm,Saturday: Reserve Banks open Fri 2027-06-18
+2027,Independence Day,2027-07-04,2027-07-05,https://www.federalreserve.gov/aboutthefed/k8.htm,Sunday: closed Monday (K.8 footnote **)
+2027,Labor Day,2027-09-06,2027-09-06,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2027,Columbus Day,2027-10-11,2027-10-11,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2027,Veterans Day,2027-11-11,2027-11-11,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2027,Thanksgiving Day,2027-11-25,2027-11-25,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2027,Christmas Day,2027-12-25,,https://www.federalreserve.gov/aboutthefed/k8.htm,Saturday: Reserve Banks open Fri 2027-12-24
+2028,New Year's Day,2028-01-01,,https://www.federalreserve.gov/aboutthefed/k8.htm,Saturday: Reserve Banks open Fri 2027-12-31 (K.8 corrected 2026-07-08; earlier version said 2028-12-31)
+2028,MLK Day,2028-01-17,2028-01-17,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2028,Washington's Birthday,2028-02-21,2028-02-21,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2028,Memorial Day,2028-05-29,2028-05-29,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2028,Juneteenth,2028-06-19,2028-06-19,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2028,Independence Day,2028-07-04,2028-07-04,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2028,Labor Day,2028-09-04,2028-09-04,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2028,Columbus Day,2028-10-09,2028-10-09,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2028,Veterans Day,2028-11-11,,https://www.federalreserve.gov/aboutthefed/k8.htm,Saturday: Reserve Banks open Fri 2028-11-10
+2028,Thanksgiving Day,2028-11-23,2028-11-23,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2028,Christmas Day,2028-12-25,2028-12-25,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,New Year's Day,2029-01-01,2029-01-01,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,MLK Day,2029-01-15,2029-01-15,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,Washington's Birthday,2029-02-19,2029-02-19,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,Memorial Day,2029-05-28,2029-05-28,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,Juneteenth,2029-06-19,2029-06-19,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,Independence Day,2029-07-04,2029-07-04,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,Labor Day,2029-09-03,2029-09-03,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,Columbus Day,2029-10-08,2029-10-08,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,Veterans Day,2029-11-11,2029-11-12,https://www.federalreserve.gov/aboutthefed/k8.htm,Sunday: closed Monday (K.8 footnote **)
+2029,Thanksgiving Day,2029-11-22,2029-11-22,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2029,Christmas Day,2029-12-25,2029-12-25,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,New Year's Day,2030-01-01,2030-01-01,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,MLK Day,2030-01-21,2030-01-21,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,Washington's Birthday,2030-02-18,2030-02-18,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,Memorial Day,2030-05-27,2030-05-27,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,Juneteenth,2030-06-19,2030-06-19,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,Independence Day,2030-07-04,2030-07-04,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,Labor Day,2030-09-02,2030-09-02,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,Columbus Day,2030-10-14,2030-10-14,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,Veterans Day,2030-11-11,2030-11-11,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,Thanksgiving Day,2030-11-28,2030-11-28,https://www.federalreserve.gov/aboutthefed/k8.htm,
+2030,Christmas Day,2030-12-25,2030-12-25,https://www.federalreserve.gov/aboutthefed/k8.htm,

@@ -3,16 +3,30 @@
 Every timestamp in the project is timezone-aware and normalised to UTC internally. Naive
 timestamps are rejected -- an FX expiry at "10:00" means nothing without a timezone.
 
-Year fractions use ACT/365 Fixed on *calendar time* measured to the second:
+Two clocks, deliberately kept separate
+-------------------------------------
+1. Diffusion clock (T). Year fractions use ACT/365 Fixed on calendar time, to the second:
 
-    T = (t_end - t_start) in seconds / (365 * 86400)
+       T = (t_end - t_start) in seconds / (365 * 86400)
 
-Using the same function for option maturities T and event times tau is what makes the
-event-inclusion rule 0 < tau <= T identical in pricing and in the data layer.
+   T runs from the valuation time to the option's expiry CUT (e.g. 10:00 New York) -- not to
+   the delivery date, which only affects the forward and discounting. This is the standard
+   convention for quoting FX implied vols against calendar time, and it is what Heston and
+   Bates see: ordinary diffusion variance (and Poisson-jump risk) accrues uniformly per unit
+   of calendar time, including weekends and holidays.
 
-Known simplification: calendar time treats weekends and holidays as carrying the same
-variance as trading days. FX desks often use trading-day or event-weighted time instead;
-for 1W options that span a weekend this matters and is noted as a limitation.
+2. Event clock (tau_i). Scheduled-event jumps are NOT spread over time. Each event adds its
+   variance sigma_E^2 once, at its exact announcement timestamp, and only if
+   0 < tau_i <= T. A weekend or holiday therefore contributes diffusion time but never
+   scheduled-event variance -- event variance appears only when an event timestamp actually
+   falls inside the option's life. Using the same year_fraction for T and tau makes that
+   inclusion test exact.
+
+Known limitation (for the write-up): calendar time gives a quiet weekend the same diffusion
+variance as a trading day. FX desks often down-weight weekends ("business-time"). For 1W
+options that span a weekend this biases the *diffusion* part of the fit, not the event part;
+a weekend weighting on the diffusion clock is a possible extension and is testable by
+comparing implied variance of expiries just before and after weekends.
 """
 
 from __future__ import annotations

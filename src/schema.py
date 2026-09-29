@@ -37,10 +37,14 @@ SCHEMA: dict[str, tuple[str, str]] = {
     "bucket": ("str", "Original quote bucket: ATM, 25DC, 25DP, 10DC, 10DP, or 'listed'"),
     "quoted_delta": ("float", "Signed quoted delta for delta buckets (NaN for listed options)"),
     "delta_convention": ("str", "e.g. 'spot/dns/market/USD' or 'n/a'"),
+    # settlement (Bloomberg: premium paid on spot_date, FX deal delivered on delivery_date)
+    "spot_date": ("str", "Premium settlement date (ISO date) or 'n/a' (listed options)"),
+    "delivery_date": ("str", "Delivery date of the exercised FX deal (ISO date) or 'n/a'"),
+    "dates_source": ("str", "'export' (from Bloomberg), 'fx_roller' (computed), or 'listed'"),
     # market state
     "spot": ("float", "Spot at valuation"),
     "forward": ("float", "Outright forward to expiry/delivery"),
-    "df_dom": ("float", "Domestic (USD) discount factor used for premiums"),
+    "df_dom": ("float", "USD discount factor: spot date -> delivery date (Bloomberg); valuation -> expiry (listed)"),
     "df_for": ("float", "Foreign discount factor implied by forward: F * df_dom / spot"),
     # quotes
     "iv_mid": ("float", "Market implied vol (decimal), Black-76 on (forward, df_dom)"),
@@ -48,12 +52,17 @@ SCHEMA: dict[str, tuple[str, str]] = {
     "iv_ask": ("float", "Ask vol if available, else NaN"),
     "price_mid": ("float", "Black-76 price from iv_mid (Bloomberg) or observed mid (listed)"),
     # events (same rule as the HB-MJ pricing model)
-    "n_events": ("int", "Scheduled events with 0 < tau <= T"),
+    "event_vintage": ("str", "'as_known': event schedule as known at valuation time"),
+    "n_events": ("int", "Scheduled events with 0 < tau <= T (as known at valuation)"),
     "event_types": ("str", "';'-joined types of those events"),
     "event_ids": ("str", "';'-joined calendar ids of those events"),
     "time_to_next_event": ("float", "Years to the next scheduled event (any type)"),
     "next_event_type": ("str", "Type of the next event"),
     "events_complete": ("bool", "False if expiry lies beyond calendar coverage (counts are a lower bound)"),
+    "schedule_uncertain": ("bool", "True if an event date in the option's life was unknown at valuation"),
+    "uncertain_event_ids": ("str", "';'-joined ids of those events"),
+    "n_events_realized": ("int", "Events that actually occurred in (valuation, expiry] (ex-post)"),
+    "event_ids_realized": ("str", "';'-joined realized ids (ex-post)"),
     # quality
     "quality_flags": ("str", "';'-joined data-quality flags set by loaders/validation (empty = clean)"),
 }

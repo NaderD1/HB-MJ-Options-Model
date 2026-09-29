@@ -1,0 +1,42 @@
+# EUR settlement calendar: TARGET (T2) closing days. Source: ECB long-term calendar for TARGET
+# closing days (press release 14 Dec 2000, still in force): New Year's Day, Good Friday, Easter
+# Monday, 1 May, 25 and 26 December; T2 also closed Sat/Sun. The ECB states these 'will not be
+# settlement days ... for foreign exchange transactions involving the euro'. Easter dates below
+# are the Western (Gregorian) Easter Sundays. Coverage: 2025-2030; outside raises an error.
+year,holiday,date,source_url
+2025,New Year's Day,2025-01-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2025,Good Friday,2025-04-18,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2025,Easter Monday,2025-04-21,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2025,Labour Day,2025-05-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2025,Christmas Day,2025-12-25,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2025,26 December,2025-12-26,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2026,New Year's Day,2026-01-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2026,Good Friday,2026-04-03,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2026,Easter Monday,2026-04-06,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2026,Labour Day,2026-05-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2026,Christmas Day,2026-12-25,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2026,26 December,2026-12-26,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2027,New Year's Day,2027-01-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2027,Good Friday,2027-03-26,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2027,Easter Monday,2027-03-29,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2027,Labour Day,2027-05-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2027,Christmas Day,2027-12-25,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2027,26 December,2027-12-26,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2028,New Year's Day,2028-01-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2028,Good Friday,2028-04-14,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2028,Easter Monday,2028-04-17,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2028,Labour Day,2028-05-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2028,Christmas Day,2028-12-25,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2028,26 December,2028-12-26,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2029,New Year's Day,2029-01-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2029,Good Friday,2029-03-30,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2029,Easter Monday,2029-04-02,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2029,Labour Day,2029-05-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2029,Christmas Day,2029-12-25,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2029,26 December,2029-12-26,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2030,New Year's Day,2030-01-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2030,Good Friday,2030-04-19,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2030,Easter Monday,2030-04-22,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2030,Labour Day,2030-05-01,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2030,Christmas Day,2030-12-25,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html
+2030,26 December,2030-12-26,https://www.ecb.europa.eu/press/pr/date/2000/html/pr001214_4.en.html

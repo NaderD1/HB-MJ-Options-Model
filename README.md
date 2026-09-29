@@ -114,6 +114,23 @@ Two tracks, one normalized schema (`src/schema.py`); calibration code reads only
   stored in local time and converted to UTC; includes 2025/2026 appropriations-lapse
   cancellations and reschedules. One inclusion rule (`src/events.py`) serves both pricing and
   tagging.
+- **Time conventions.** Diffusion clock: T = ACT/365F calendar time from valuation to the expiry
+  cut (weekends carry diffusion variance). Event clock: each scheduled event adds σ_E² once, at
+  its timestamp, only if it falls inside the option's life; weekends add no event variance.
+- **Settlement.** Bloomberg premiums are priced as DF_USD(spot date → delivery) × Black-76 on the
+  forward to the delivery date, with T to the expiry cut. Spot/expiry/delivery dates come from
+  the export; the FX date roller (`src/fx_calendar.py`) fills them only when explicitly allowed,
+  after validation against OVML. Settlement calendars are explicit sourced tables, 2025–2030:
+  USD = days the Federal Reserve Banks (Fedwire Funds) are closed, per Federal Reserve Board K.8
+  (Saturday holidays: Banks open the preceding Friday, e.g. 3 Jul 2026); EUR = TARGET (T2) closing
+  days per the ECB. Where holidays make the month-tenor delivery→expiry inverse impossible
+  (e.g. 1M from 26 Oct 2026 across Thanksgiving), the roller returns *ambiguous* with candidates
+  rather than choosing one. Roller-vs-roller agreement on synthetic data is not an external validation.
+- **Event vintages.** Pricing and tagging use the schedule *as known at the valuation time*
+  (`data/events/schedule_changes.csv` records when each reschedule/cancellation was announced);
+  options whose event dates were genuinely unknown at valuation (e.g. during the 2025 and 2026
+  funding lapses) are flagged `schedule_uncertain`. The realized calendar is kept for ex-post
+  analysis.
 - Pre-calibration checks (`src/validation.py`): forward consistency, price/vol consistency,
   Bloomberg smile reconstruction, delta round trip, price bounds, bid/ask, butterfly and
   calendar arbitrage, timestamp consistency, event tags, schema, audit trail.

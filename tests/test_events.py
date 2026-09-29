@@ -74,3 +74,41 @@ def test_coverage_policy():
 def test_naive_timestamps_rejected():
     with pytest.raises(ValueError, match="Naive"):
         to_utc("2026-10-28 14:00")
+
+
+# ---------------------------------------------------------------- calendar vintages
+@pytest.mark.parametrize(
+    "valuation, as_known, uncertain, realized",
+    [
+        # Before the 2025 lapse: the original Sep-CPI date (15 Oct) was what everyone knew.
+        ("2025-09-25T20:00:00Z", "NFP-2025-10-03;CPI-2025-10-15", "", "CPI-2025-10-24"),
+        # During the lapse, before BLS announced 24 Oct: the CPI date was genuinely unknown.
+        ("2025-10-06T20:00:00Z", "FOMC-2025-10-29;ECB-2025-10-30", "CPI-2025-10-15;CPI-2025-10-24",
+         "CPI-2025-10-24;FOMC-2025-10-29;ECB-2025-10-30"),
+        # After the 10 Oct announcement: the revised date is known.
+        ("2025-10-14T20:00:00Z", "CPI-2025-10-24;FOMC-2025-10-29;ECB-2025-10-30", "NFP-2025-11-07;CPI-2025-11-13",
+         "CPI-2025-10-24;FOMC-2025-10-29;ECB-2025-10-30"),
+        # After all announcements: as-known equals realized.
+        ("2025-11-24T20:00:00Z", "FOMC-2025-12-10;NFP-2025-12-16;ECB-2025-12-18;CPI-2025-12-18", "",
+         "FOMC-2025-12-10;NFP-2025-12-16;ECB-2025-12-18;CPI-2025-12-18"),
+    ],
+)
+def test_as_known_vs_realized_schedule(valuation, as_known, uncertain, realized):
+    t = CAL.tag_both(valuation, pd.Timestamp(valuation) + pd.Timedelta(days=30))
+    assert t["event_ids"] == as_known
+    assert t["uncertain_event_ids"] == uncertain and t["schedule_uncertain"] == bool(uncertain)
+    assert t["event_ids_realized"] == realized
+
+
+def test_pricing_model_uses_as_known_schedule():
+    v = pd.Timestamp("2025-09-25T20:00:00Z")
+    ids = [e.event_id for e in CAL.scheduled_events(v) if 0 < e.tau <= 30 / 365]
+    assert "CPI-2025-10-15" in ids and "CPI-2025-10-24" not in ids
+    ids_realized = [e.event_id for e in CAL.scheduled_events(v, vintage="realized") if 0 < e.tau <= 30 / 365]
+    assert "CPI-2025-10-24" in ids_realized and "CPI-2025-10-15" not in ids_realized
+
+
+def test_superseded_and_canceled_rows_never_in_realized_calendar():
+    assert not CAL.active.status.isin(["superseded", "canceled"]).any()
+    changed = set(CAL.changes.original_event_id)
+    assert changed == set(CAL.table.event_id[CAL.table.status.isin(["superseded", "canceled"])])
