@@ -1,0 +1,8 @@
+{
+  "underlying": "SPY",
+  "spot": 764.77001953125,
+  "spot_ts_utc": "2026-09-29T19:09:00+00:00",
+  "spot_kind": "intraday_1m",
+  "retrieved_utc": "2026-09-29T19:09:30.891825+00:00",
+  "source": "yfinance (Yahoo Finance; quotes may be delayed)"
+}

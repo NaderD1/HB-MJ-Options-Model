@@ -1,0 +1,51 @@
+{
+  "report": {
+    "raw_rows": 72,
+    "dropped": {
+      "zero_bid_or_crossed": 35,
+      "wide_spread": 12,
+      "low_open_interest": 8,
+      "no_parity_2026-10-16": 5,
+      "no_parity_2026-11-20": 2
+    },
+    "expiries": {
+      "2026-10-16": {
+        "T": 0.04667808219178082,
+        "D": 0.9981347410966424,
+        "F": NaN,
+        "parity_resid_std": NaN,
+        "n_parity": 0
+      },
+      "2026-11-20": {
+        "T": 0.14268264840182648,
+        "D": 0.9942103373624284,
+        "F": NaN,
+        "parity_resid_std": NaN,
+        "n_parity": 0
+      },
+      "2026-12-18": {
+        "T": 0.21939497716894976,
+        "D": 0.9909153441308565,
+        "F": 104.8520714642907,
+        "parity_resid_std": 0.11191273182401013,
+        "n_parity": 2
+      }
+    },
+    "rates": "DGS1MO=4.04@2026-09-25;DGS3MO=4.24@2026-09-25;DGS6MO=4.33@2026-09-25;DGS1=4.5@2026-09-25",
+    "kept": 3
+  },
+  "meta": {
+    "underlying": "FXE",
+    "spot": 104.69999694824219,
+    "spot_ts_utc": "2026-09-29T19:06:00+00:00",
+    "spot_kind": "intraday_1m",
+    "retrieved_utc": "2026-09-29T19:09:30.331678+00:00",
+    "source": "yfinance (Yahoo Finance; quotes may be delayed)",
+    "raw_source_file": "fxe_20260929T190930Z_chain.csv",
+    "raw_file_sha256": "de2d2ee55a10d04ce9e8476ac99b372d5f25d2eadd1cdd939beea5e963fda708"
+  },
+  "kept_rows": 3,
+  "expiries_kept": [
+    "2026-12-18"
+  ]
+}

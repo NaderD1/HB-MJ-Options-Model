@@ -162,6 +162,31 @@ def check_butterfly(df, tol=1e-12):
     return _result("butterfly_arbitrage", n, bad, np.nan, tol, "per expiry: call prices decreasing & convex in K")
 
 
+def check_butterfly_net_of_spread(df):
+    """Tradable butterfly arbitrage: a convexity violation of mid call prices LARGER than the average
+    half bid-ask spread of the three options involved. The strict check above also flags sub-spread
+    wiggles, which in real quotes are microstructure noise, not arbitrage."""
+    q = df.dropna(subset=["iv_bid", "iv_ask"])
+    bad, n = [], 0
+    for key, g in q.groupby(["source", "valuation_ts_utc", "expiry_ts_utc"]):
+        g = g.sort_values("strike")
+        if len(g) < 3:
+            continue
+        n += 1
+        F, T, D, K = g.forward.to_numpy(), g["T"].to_numpy(), g.df_dom.to_numpy(), g.strike.to_numpy()
+        par = D * (F - K)
+        to_call = lambda vol: np.where(g.is_call, black76_price(F, K, T, vol, D, g.is_call),
+                                       black76_price(F, K, T, vol, D, g.is_call) + par)
+        mid, hs = to_call(g.iv_mid.to_numpy()), 0.5 * (to_call(g.iv_ask.to_numpy()) - to_call(g.iv_bid.to_numpy()))
+        w1 = (K[2:] - K[1:-1]) / (K[2:] - K[:-2])
+        conv = w1 * mid[:-2] + (1 - w1) * mid[2:] - mid[1:-1]  # >= 0 for convex prices
+        tol = (hs[:-2] + hs[1:-1] + hs[2:]) / 3
+        if (conv < -tol).any():
+            bad.append(f"{key[0]}|{key[2]}")
+    return _result("butterfly_arbitrage_net_of_spread", n, bad, np.nan, np.nan,
+                   "convexity violation beyond the average half bid-ask spread")
+
+
 def check_calendar(df, tol=1e-10):
     bad, n = [], 0
     for key, g in df.groupby(["source", "valuation_ts_utc"]):
@@ -247,7 +272,8 @@ def run_validation(df: pd.DataFrame, calendar: EventCalendar | None = None) -> p
     checks = [
         check_schema(df), check_audit(df), check_time(df), check_forward_consistency(df), check_cip_basis(df),
         check_price_vol_consistency(df), check_smile_reconstruction(df), check_delta_round_trip(df),
-        check_price_bounds(df), check_bid_ask(df), check_butterfly(df), check_calendar(df),
+        check_price_bounds(df), check_bid_ask(df), check_butterfly(df), check_butterfly_net_of_spread(df),
+        check_calendar(df),
         check_event_tags(df, calendar), check_settlement_dates(df), check_roller_agreement(df),
     ]
     return pd.DataFrame(checks)

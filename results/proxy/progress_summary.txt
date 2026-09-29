@@ -1,0 +1,2 @@
+2026-09-29 15:30:49  model fits done 42/42  folds done 14/14  elapsed 0s  avg fold nans  est. remaining nans
+2026-09-29 15:31:13  model fits done 42/42  folds done 14/14  elapsed 0s  avg fold nans  est. remaining nans

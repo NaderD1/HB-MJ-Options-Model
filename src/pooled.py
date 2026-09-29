@@ -394,37 +394,81 @@ class PooledNested:
         return {"Heston": self.heston, "Bates": self.bates, "HB-MJ": self.hbmj}
 
 
+def restore_fit(panel: Panel, spec: PooledSpec, shared: Mapping[str, float], local: Sequence[Mapping[str, float]],
+                mapping: dict[str, str], obj: Objective, status: int, success: bool, message: str) -> PooledFit:
+    """Rebuild a PooledFit from checkpointed parameters (one residual evaluation, no optimisation).
+
+    Used when resuming: a completed stage is not re-optimised; its saved parameters seed the next stage.
+    The Jacobian is not stored, so identifiability diagnostics need the stage refit (they are optional)."""
+    prob = _Problem(panel, spec, obj, mapping, 0.0, None, 1)
+    shared, local = dict(shared), [dict(l) for l in local]
+    r = np.concatenate([prob._date_residuals(d, shared, local[d]) for d in range(prob.D)])
+    e = np.concatenate([evaluate(build_date_model(spec, shared, local[d], pdt.data.events, mapping), pdt.data,
+                                 Objective("iv", "equal")).residuals for d, pdt in enumerate(panel.dates)])
+    return PooledFit(spec, shared, local, dict(mapping), float(0.5 * np.sum(r**2)), float(np.sqrt(np.mean(e**2))),
+                     panel.n_quotes, 0, status, f"restored from checkpoint: {message}", success, 0.0, (), None, r,
+                     prob.names())
+
+
 def calibrate_pooled_nested(panel: Panel, obj: Objective = Objective(), local: Sequence[str] = DEFAULT_LOCAL,
                             smooth: float = 0.0, threads: int = 8, shared_starts: Sequence[Mapping] | None = None,
-                            timeout_s: float | None = None, progress=None) -> PooledNested:
+                            timeout_s: float | None = None, progress=None, on_stage=None,
+                            done: Mapping[str, Mapping] | None = None) -> PooledNested:
     """Pooled Heston -> Bates -> HB-MJ, each stage started from the previous one.
 
-    timeout_s / progress are passed to every fit (see fit_pooled)."""
+    timeout_s / progress are passed to every fit (see fit_pooled).
+    on_stage(model_name, fit): called as soon as each model stage finishes (use it to checkpoint).
+    done: {model_name: {"shared", "local", "status", "success", "message"}} of stages already completed;
+          they are restored from their saved parameters instead of being re-optimised.
+    """
     kw = dict(threads=threads, timeout_s=timeout_s, progress=progress)
+    done = dict(done or {})
     mapping, keys, clusters = event_parameter_map(panel)
+
+    def stage(name, spec, run):
+        if name in done:
+            d = done[name]
+            f = restore_fit(panel, spec, d["shared"], d["local"], mapping, obj, d["status"], d["success"], d["message"])
+            if progress is not None:
+                progress(f"{name}: restored from checkpoint (not re-optimised)")
+            return f
+        f = run()
+        if on_stage is not None:
+            on_stage(name, f)
+        return f
+
     hs = PooledSpec.make("Heston", local=local)
     loc0 = heuristic_local_start(panel, PooledSpec.make("HB-MJ", keys, local=ALL_LOCAL))
     starts = shared_starts or [dict(kappa=2.0, sigma=0.4, rho=0.0, v0=0.005, theta=0.007),
                                dict(kappa=0.8, sigma=0.8, rho=-0.3, v0=0.005, theta=0.007)]
-    h_fits = [fit_pooled(panel, hs, obj, s, [{n: l[n] for n in hs.local} for l in loc0], mapping, smooth,
-                         label=f"Heston start {i}", **kw) for i, s in enumerate(starts)]
-    h = min(h_fits, key=lambda f: f.cost)
+    h = stage("Heston", hs, lambda: min(
+        (fit_pooled(panel, hs, obj, s, [{n: l[n] for n in hs.local} for l in loc0], mapping, smooth,
+                    label=f"Heston start {i}", **kw) for i, s in enumerate(starts)), key=lambda f: f.cost))
     bs = PooledSpec.make("Bates", local=local)
-    b_fits = []
-    for i, j in enumerate((dict(lam=0.5, mu_J=0.0, sigma_J=0.02), dict(lam=3.0, mu_J=-0.01, sigma_J=0.01))):
-        sh0 = {**h.shared, **{k: v for k, v in j.items() if k in bs.shared}}
-        l0 = [{**l, **{k: v for k, v in j.items() if k in bs.local}} for l in h.local]
-        b_fits.append(fit_pooled(panel, bs, obj, sh0, l0, mapping, smooth, label=f"Bates start {i}", **kw))
-    b = min(b_fits, key=lambda f: f.cost)
+
+    def run_bates():
+        fits = []
+        for i, j in enumerate((dict(lam=0.5, mu_J=0.0, sigma_J=0.02), dict(lam=3.0, mu_J=-0.01, sigma_J=0.01))):
+            sh0 = {**h.shared, **{k: v for k, v in j.items() if k in bs.shared}}
+            l0 = [{**l, **{k: v for k, v in j.items() if k in bs.local}} for l in h.local]
+            fits.append(fit_pooled(panel, bs, obj, sh0, l0, mapping, smooth, label=f"Bates start {i}", **kw))
+        return min(fits, key=lambda f: f.cost)
+
+    b = stage("Bates", bs, run_bates)
     es = PooledSpec.make("HB-MJ", keys, local=local)
     ev0 = {k: 0.004 for k in keys}
-    # 3a: event parameters only (Heston/Bates part fixed at the pooled Bates fit)
-    e_only = _events_only(panel, es, obj, b, ev0, mapping, threads)
-    # 3b: joint
-    if progress is not None:
-        progress(f"HB-MJ events-only stage done: cost {e_only.cost:.6e}")
-    joint = fit_pooled(panel, es, obj, e_only.shared, b.local, mapping, smooth, label="HB-MJ joint", **kw)
-    return PooledNested(h, b, e_only, joint, tuple(keys), clusters)
+    holder = {}
+
+    def run_hbmj():
+        # 3a: event parameters only (Heston/Bates part fixed at the pooled Bates fit); 3b: joint
+        e_only = _events_only(panel, es, obj, b, ev0, mapping, threads)
+        holder["e_only"] = e_only
+        if progress is not None:
+            progress(f"HB-MJ events-only stage done: cost {e_only.cost:.6e}")
+        return fit_pooled(panel, es, obj, e_only.shared, b.local, mapping, smooth, label="HB-MJ joint", **kw)
+
+    joint = stage("HB-MJ", es, run_hbmj)
+    return PooledNested(h, b, holder.get("e_only"), joint, tuple(keys), clusters)
 
 
 def _events_only(panel, spec, obj, bates_fit, ev0, mapping, threads) -> PooledFit:

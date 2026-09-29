@@ -285,6 +285,7 @@ class FXEFilters:
     max_rel_spread: float = 0.5   # (ask - bid) / mid
     min_days: float = 2.0
     n_parity_strikes: int = 6     # strikes nearest spot used to infer the forward
+    require_bid_ask_iv: bool = True  # drop quotes whose bid or ask has no implied vol (unreliable mid IV)
 
 
 def fetch_fred_treasury(series: dict[str, float] = FRED_SERIES) -> pd.DataFrame:
@@ -378,7 +379,20 @@ def normalize_fxe(
     filters: FXEFilters = FXEFilters(),
 ) -> tuple[pd.DataFrame, dict]:
     """FXE raw chain -> normalized OTM quotes (development fallback). Returns (frame, report)."""
+    return normalize_listed(raw, {**meta, "underlying": "FXE"}, rates, calendar, filters)
+
+
+def normalize_listed(
+    raw: pd.DataFrame, meta: dict, rates: pd.DataFrame, calendar: EventCalendar | None = None,
+    filters: FXEFilters = FXEFilters(),
+) -> tuple[pd.DataFrame, dict]:
+    """Listed US options chain (FXE, SPY, ...) -> normalized OTM quotes. PROXY data: every row is
+    is_dev_fallback=True with source '<ticker>_yfinance_dev'. Filters: zero/crossed quotes, wide
+    spreads, low open interest, too-short expiries, no parity forward, and unreliable implied vols
+    (mid, bid AND ask must all invert inside no-arbitrage bounds). Returns (frame, report)."""
     calendar = calendar or EventCalendar.from_csv()
+    ticker = str(meta.get("underlying", "FXE")).upper()
+    source = f"{ticker.lower()}_yfinance_dev"
     valuation = to_utc(meta["spot_ts_utc"])
     spot = float(meta["spot"])
     report = {"raw_rows": len(raw), "dropped": {}, "expiries": {}}
@@ -424,14 +438,18 @@ def normalize_fxe(
                 continue
             ivb = implied_vol(float(q.bid), F, float(q.strike), T, D, is_call).vol
             iva = implied_vol(float(q.ask), F, float(q.strike), T, D, is_call).vol
-            flags = ["american_exercise", "forward_from_parity"] + (["quotes_possibly_stale"] if stale else [])
+            if filters.require_bid_ask_iv and not (np.isfinite(ivb) and np.isfinite(iva)):
+                report["dropped"].setdefault("iv_bid_or_ask_invalid", 0)
+                report["dropped"]["iv_bid_or_ask_invalid"] += 1
+                continue
+            flags = ["american_exercise", "forward_from_parity", "proxy_not_otc_eurusd"] + (["quotes_possibly_stale"] if stale else [])
             rows.append({
-                "quote_id": f"fxe_yfinance_dev|{valuation.isoformat()}|{exp}|{q.strike:g}|{q.cp}",
-                "source": "fxe_yfinance_dev", "is_dev_fallback": True,
+                "quote_id": f"{source}|{valuation.isoformat()}|{exp}|{q.strike:g}|{q.cp}",
+                "source": source, "is_dev_fallback": True,
                 "raw_source_file": meta.get("raw_source_file", "live_fetch"), "raw_file_sha256": meta.get("raw_file_sha256", "n/a"),
                 "raw_row_id": q.row_id,
                 "raw_fields": _jsonable(q.drop(labels=["row_id", "mid"])),
-                "pair": "FXE", "valuation_ts_utc": valuation, "expiry_ts_utc": expiry, "T": T, "tenor": "listed",
+                "pair": ticker, "valuation_ts_utc": valuation, "expiry_ts_utc": expiry, "T": T, "tenor": "listed",
                 "strike": float(q.strike), "is_call": bool(is_call), "bucket": "listed", "quoted_delta": np.nan,
                 "delta_convention": "n/a", "spot_date": "n/a", "delivery_date": "n/a", "dates_source": "listed",
                 "spot": spot, "forward": F, "df_dom": D, "df_for": F * D / spot,
