@@ -1,0 +1,38 @@
+# NYSE full-day holidays and early closes (Core Trading Session otherwise 09:30-16:00 ET).
+# Source: https://www.nyse.com/trade/hours-calendars (retrieved 2026-09-29), 2026-2028 table.
+# Early closes: 13:00 ET. Coverage 2026-01-01 .. 2028-12-31; dates outside raise an error.
+date,kind,close_time,note
+2026-01-01,holiday,,New Year's Day
+2026-01-19,holiday,,Martin Luther King Jr. Day
+2026-02-16,holiday,,Washington's Birthday
+2026-04-03,holiday,,Good Friday
+2026-05-25,holiday,,Memorial Day
+2026-06-19,holiday,,Juneteenth
+2026-07-03,holiday,,Independence Day observed
+2026-09-07,holiday,,Labor Day
+2026-11-26,holiday,,Thanksgiving Day
+2026-11-27,early_close,13:00,day after Thanksgiving
+2026-12-24,early_close,13:00,Christmas Eve
+2026-12-25,holiday,,Christmas Day
+2027-01-01,holiday,,New Year's Day
+2027-01-18,holiday,,Martin Luther King Jr. Day
+2027-02-15,holiday,,Washington's Birthday
+2027-03-26,holiday,,Good Friday
+2027-05-31,holiday,,Memorial Day
+2027-06-18,holiday,,Juneteenth observed
+2027-07-05,holiday,,Independence Day observed
+2027-09-06,holiday,,Labor Day
+2027-11-25,holiday,,Thanksgiving Day
+2027-11-26,early_close,13:00,day after Thanksgiving
+2027-12-24,holiday,,Christmas Day observed
+2028-01-17,holiday,,Martin Luther King Jr. Day
+2028-02-21,holiday,,Washington's Birthday
+2028-04-14,holiday,,Good Friday
+2028-05-29,holiday,,Memorial Day
+2028-06-19,holiday,,Juneteenth
+2028-07-03,early_close,13:00,day before Independence Day
+2028-07-04,holiday,,Independence Day
+2028-09-04,holiday,,Labor Day
+2028-11-23,holiday,,Thanksgiving Day
+2028-11-24,early_close,13:00,day after Thanksgiving
+2028-12-25,holiday,,Christmas Day

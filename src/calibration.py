@@ -67,6 +67,9 @@ from src.models.nested import NestedModel
 from src.pricing_engine import price_european
 
 INVALID_RESIDUAL = 1.0  # 100 vol points: far larger than any sensible fit error
+# A parameter within 0.1% of its (transformed) bound range counts as a bound hit. (1e-6 was too tight:
+# it missed lambda = 49.9999 of 50 and theta = 0.24996 of 0.25 in the proxy study.)
+BOUND_TOL = 1e-3
 
 
 # =========================================================================== #
@@ -333,7 +336,7 @@ def fit(
     x = unpack(res.x)
     ev = evaluate(spec.build(x, data.events), data, obj, w)
     hits = tuple(s.name for s, zi, lo, hi in zip(fspecs, res.x, lb, ub)
-                 if min(zi - lo, hi - zi) < 1e-6 * max(1.0, hi - lo))
+                 if min(zi - lo, hi - zi) < BOUND_TOL * (hi - lo))
     params = {p.name: x[p.name] for p in spec.params}
     iv_err = ev.iv_model - data.iv
     return FitResult(

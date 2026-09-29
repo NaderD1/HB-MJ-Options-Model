@@ -20,7 +20,13 @@ Objective: vega-per-expiry weighted IV errors (as in the synthetic study).
 Out of sample: leave-one-expiry-out -- each calibration expiry is removed, all three models are
 refit on the rest, and the removed expiry is predicted.
 
-Run:  python -m scripts.proxy_study           (results/proxy/*.csv, results/figures/proxy_*.png)
+Diffusion clock (--clock): "calendar" (ACT/365F, the original run, results/proxy/) or "trading"
+(NYSE trading-day clock, src/clocks.TradingClock with overnight_share=0, results/proxy_trading/).
+The trading run uses the SAME saved contract selection (results/proxy/selected_contracts.csv), the
+same filters, events, parameter counts, folds, budgets and metrics; only maturities/event times are
+measured on the trading clock and market implied vols are re-inverted from the unchanged prices.
+
+Run:  python -m scripts.proxy_study [--clock calendar|trading]
 """
 
 from __future__ import annotations
@@ -35,13 +41,31 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
+SELECTION_DIR = ROOT / "results" / "proxy"          # contract selection is shared by both clocks
 OUT = ROOT / "results" / "proxy"
+CLOCK_NAME = "calendar"
 SNAP = ROOT / "data" / "snapshots" / "spy_20260929T190930Z_chain.csv"
 FXE_SNAP = ROOT / "data" / "snapshots" / "fxe_20260929T190930Z_chain.csv"
 Z_TARGETS = (-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0)
 SHORT_DAYS = 14
 SMOOTH = 1e-4
 TIMEOUT_S = 600
+
+
+def configure(clock_name: str) -> None:
+    """Select the diffusion clock and its output directory (also called inside worker processes)."""
+    global OUT, CKPT_DIR, CLOCK_NAME
+    if clock_name not in ("calendar", "trading"):
+        raise ValueError("clock must be 'calendar' or 'trading'")
+    CLOCK_NAME = clock_name
+    OUT = ROOT / "results" / ("proxy" if clock_name == "calendar" else "proxy_trading")
+    CKPT_DIR = OUT / "fit_results"
+
+
+def get_clock():
+    from src.clocks import CalendarClock, TradingClock
+
+    return CalendarClock() if CLOCK_NAME == "calendar" else TradingClock(overnight_share=0.0)
 
 
 # --------------------------------------------------------------------------- data
@@ -88,11 +112,31 @@ def build_panel(sel: pd.DataFrame):
     view, _ = cal.view(v, "as_known")
     view = view[(view.timestamp_utc > v) & (view.timestamp_utc <= horizon)]
     catalog = tuple(CatalogEvent(i, k, t) for i, k, t in zip(view.event_id, view.event_type, view.timestamp_utc))
-    events = tuple(e for e in cal.scheduled_events(v, vintage="as_known") if e.event_id in {c.event_id for c in catalog})
-    c = ContractSet.from_arrays(sel.forward, sel.strike, sel["T"], sel.df_dom, sel.is_call)
     labels = tuple(sel.expiry_ts_utc.dt.strftime("%Y-%m-%d"))
-    data = CalibrationData(c, sel.iv_mid.to_numpy(), sel.price_mid.to_numpy(), events,
-                           sel.iv_bid.to_numpy(), sel.iv_ask.to_numpy(), labels)
+    if CLOCK_NAME == "calendar":  # exactly the original construction
+        events = tuple(e for e in cal.scheduled_events(v, vintage="as_known") if e.event_id in {c.event_id for c in catalog})
+        c = ContractSet.from_arrays(sel.forward, sel.strike, sel["T"], sel.df_dom, sel.is_call)
+        data = CalibrationData(c, sel.iv_mid.to_numpy(), sel.price_mid.to_numpy(), events,
+                               sel.iv_bid.to_numpy(), sel.iv_ask.to_numpy(), labels)
+        return Panel((PanelDate(v, data, str(v.date())),), catalog)
+    # Trading clock: maturities and event times on the trading clock; the market PRICES are unchanged
+    # and implied vols are re-inverted from them (bid/ask vols via their calendar-clock prices).
+    from src.events import ScheduledEvent
+    from src.models.black_scholes import black76_price, implied_vol_fast
+
+    clock = get_clock()
+    events = tuple(ScheduledEvent(clock.year_fraction(v, e.ts), e.kind, e.event_id) for e in catalog)
+    T = np.array([clock.year_fraction(v, x) for x in sel.expiry_ts_utc])
+    F, K, D, C = sel.forward.to_numpy(), sel.strike.to_numpy(), sel.df_dom.to_numpy(), sel.is_call.to_numpy()
+    Tc = sel["T"].to_numpy()
+    inv = lambda price: implied_vol_fast(price, F, K, T, D, C, guess=np.full(len(T), 0.2))
+    iv, ok = inv(sel.price_mid.to_numpy())
+    ivb, okb = inv(black76_price(F, K, Tc, sel.iv_bid.to_numpy(), D, C))
+    iva, oka = inv(black76_price(F, K, Tc, sel.iv_ask.to_numpy(), D, C))
+    if not (ok.all() and okb.all() and oka.all()):
+        raise ValueError("trading-clock implied vol inversion failed for some selected contracts")
+    c = ContractSet.from_arrays(F, K, T, D, C)
+    data = CalibrationData(c, iv, sel.price_mid.to_numpy(), events, ivb, iva, labels)
     return Panel((PanelDate(v, data, str(v.date())),), catalog)
 
 
@@ -118,7 +162,9 @@ def contract_results(nc, panel) -> pd.DataFrame:
     pdt = panel.dates[0]
     d = pdt.data
     c = d.contracts
-    rows = pd.DataFrame({"expiry": d.labels, "T_days": 365 * c.T, "K": c.K, "F": c.F, "is_call": c.is_call,
+    cal_days = [(pd.Timestamp(f"{e} 16:00").tz_localize("America/New_York") - pdt.valuation_ts).total_seconds() / 86400
+                for e in d.labels]  # calendar days: identical short/long subsets under both clocks
+    rows = pd.DataFrame({"expiry": d.labels, "T_days": cal_days, "K": c.K, "F": c.F, "is_call": c.is_call,
                          "k": np.log(c.K / c.F), "iv_mkt": d.iv, "iv_bid": d.iv_bid, "iv_ask": d.iv_ask,
                          "price_mkt": d.price})
     spans = d.spanned_events
@@ -228,14 +274,15 @@ def event_steps(nc, panel, res) -> pd.DataFrame:
     out = []
     v = panel.dates[0].valuation_ts
     for cl in event_clusters(panel):
-        t_first = (cl[0].ts - v).total_seconds() / (365 * 86400)
-        t_last = (cl[-1].ts - v).total_seconds() / (365 * 86400)
+        clock = get_clock()
+        t_first = clock.year_fraction(v, cl[0].ts)
+        t_last = clock.year_fraction(v, cl[-1].ts)
         before, after = Ts[Ts < t_first], Ts[Ts >= t_last]
         if not len(before) or not len(after):
             continue
         tb, ta = before.max(), after.min()
-        other = [e for e in panel.catalog if t_first > (e.ts - v).total_seconds() / (365 * 86400) > tb
-                 or ta >= (e.ts - v).total_seconds() / (365 * 86400) > t_last]
+        other = [e for e in panel.catalog if t_first > clock.year_fraction(v, e.ts) > tb
+                 or ta >= clock.year_fraction(v, e.ts) > t_last]
         ib, ia = atm_idx[tb], atm_idx[ta]
         w = lambda iv: iv[ia] ** 2 * ta - iv[ib] ** 2 * tb
         row = {"cluster": "+".join(e.event_id for e in cl), "key": f.mapping.get(cl[0].event_id, ""),
@@ -316,7 +363,7 @@ def _row(fold_id, name, f, panel, test=None) -> dict:
 
 def load_selection() -> pd.DataFrame:
     """Reuse the saved contract selection (no re-normalisation on resume)."""
-    sel = pd.read_csv(OUT / "selected_contracts.csv")
+    sel = pd.read_csv(SELECTION_DIR / "selected_contracts.csv")
     for c in ("valuation_ts_utc", "expiry_ts_utc"):
         sel[c] = pd.to_datetime(sel[c], utc=True)
     for c in ("is_call", "events_complete", "schedule_uncertain", "is_dev_fallback"):
@@ -324,10 +371,11 @@ def load_selection() -> pd.DataFrame:
     return sel
 
 
-def run_fold(fold_id: str) -> dict:
+def run_fold(fold_id: str, clock_name: str = "calendar") -> dict:
     """Fit Heston -> Bates -> HB-MJ for one fold, checkpointing after EACH model; skip finished stages."""
     for k in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
         os.environ[k] = "1"
+    configure(clock_name)
     from src.pooled import Panel, PanelDate, calibrate_pooled_nested, DEFAULT_LOCAL
 
     t0 = time.perf_counter()
@@ -353,10 +401,31 @@ def run_fold(fold_id: str) -> dict:
         with open(log, "a", encoding="utf-8") as fh:
             fh.write(f"{time.strftime('%H:%M:%S')} {msg}\n")
 
-    calibrate_pooled_nested(panel, local=DEFAULT_LOCAL, smooth=SMOOTH, threads=4, timeout_s=TIMEOUT_S,
-                            progress=progress, done=done,
-                            on_stage=lambda name, f: append_checkpoint(_row(fold_id, name, f, panel, test)))
+    nc = calibrate_pooled_nested(panel, local=DEFAULT_LOCAL, smooth=SMOOTH, threads=4, timeout_s=TIMEOUT_S,
+                                 progress=progress, done=done,
+                                 on_stage=lambda name, f: append_checkpoint(_row(fold_id, name, f, panel, test)))
+    if fold_id == "full_sample" and not done:  # live fits (with Jacobians): write the full-sample tables now
+        write_full_sample_tables(nc, panel)
     return {"fold_id": fold_id, "skipped": False, "seconds": time.perf_counter() - t0}
+
+
+def write_full_sample_tables(nc, panel) -> None:
+    from src.pooled import pooled_identifiability
+
+    res = contract_results(nc, panel)
+    res.to_csv(OUT / "contract_results.csv", index=False)
+    model_table(nc, panel, res).to_csv(OUT / "model_table.csv", index=False)
+    breakdown(res).to_csv(OUT / "breakdown.csv", index=False)
+    stable_quantities(nc).to_csv(OUT / "stable_quantities.csv", index=False)
+    event_steps(nc, panel, res).to_csv(OUT / "event_steps.csv", index=False)
+    try:
+        idf = pooled_identifiability(nc.hbmj)
+        pd.DataFrame({"key": list(idf["se"]), "se_at_0.1volpt": list(idf["se"].values()),
+                      "value": [nc.hbmj.shared[k] for k in idf["se"]]}).to_csv(OUT / "hbmj_shared_se.csv", index=False)
+    except Exception as exc:
+        print("identifiability failed", exc)
+    json.dump({"clusters": [[e.event_id for e in c] for c in nc.clusters], "event_keys": list(nc.event_keys),
+               "clock": CLOCK_NAME}, open(OUT / "event_clusters.json", "w"), indent=2)
 
 
 def write_progress_summary(total_folds: int, t_start: float, fold_times: list[float], workers: int) -> str:
@@ -460,13 +529,16 @@ def prepare_data() -> None:
     sel.to_csv(OUT / "selected_contracts.csv", index=False)
 
 
-def main(workers: int = 4):
+def main(workers: int = 4, clock_name: str = "calendar"):
     from concurrent.futures import as_completed
 
+    configure(clock_name)
     OUT.mkdir(parents=True, exist_ok=True)
-    if not (OUT / "selected_contracts.csv").exists():
+    if not (SELECTION_DIR / "selected_contracts.csv").exists():
+        if clock_name != "calendar":
+            raise SystemExit("run the calendar-clock study first: it creates the shared contract selection")
         prepare_data()
-    migrated = migrate_completed_run()
+    migrated = migrate_completed_run() if clock_name == "calendar" else 0
     if migrated:
         print(f"migrated {migrated} rows from the previously completed run into {CKPT_DIR}", flush=True)
     expiries = sorted(load_selection().expiry_ts_utc.dt.strftime("%Y-%m-%d").unique())
@@ -477,7 +549,7 @@ def main(workers: int = 4):
     print(write_progress_summary(len(folds), t_start, times, workers), flush=True)
     if todo:
         with ProcessPoolExecutor(max_workers=min(workers, len(todo))) as pool:  # workers x 4 threads, BLAS capped at 1
-            futs = {pool.submit(run_fold, f): f for f in todo}
+            futs = {pool.submit(run_fold, f, clock_name): f for f in todo}
             for fut in as_completed(futs):
                 r = fut.result()
                 if not r["skipped"]:
@@ -490,6 +562,10 @@ def main(workers: int = 4):
 
 
 if __name__ == "__main__":
+    import argparse
+
     for k in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
         os.environ.setdefault(k, "1")
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--clock", choices=("calendar", "trading"), default="calendar")
+    main(clock_name=ap.parse_args().clock)

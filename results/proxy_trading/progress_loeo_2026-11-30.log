@@ -1,0 +1,64 @@
+15:44:26 Heston start 0: 1 residual evals, best cost 3.069678e-02, 0s
+15:44:26 Heston start 0: 25 residual evals, best cost 6.195582e-04, 1s
+15:44:27 Heston start 0: 50 residual evals, best cost 6.038384e-04, 2s
+15:44:28 Heston start 0: 75 residual evals, best cost 5.994935e-04, 3s
+15:44:29 Heston start 0: 100 residual evals, best cost 5.991851e-04, 3s
+15:44:30 Heston start 0: 125 residual evals, best cost 5.991254e-04, 4s
+15:44:31 Heston start 0: 150 residual evals, best cost 5.991254e-04, 5s
+15:44:31 Heston start 1: 1 residual evals, best cost 3.038454e-02, 0s
+15:44:32 Heston start 1: 25 residual evals, best cost 6.168901e-04, 1s
+15:44:33 Heston start 1: 50 residual evals, best cost 6.023439e-04, 2s
+15:44:34 Heston start 1: 75 residual evals, best cost 5.998124e-04, 2s
+15:44:34 Heston start 1: 100 residual evals, best cost 5.991373e-04, 3s
+15:44:35 Heston start 1: 125 residual evals, best cost 5.991252e-04, 4s
+15:44:36 Heston start 1: 150 residual evals, best cost 5.991252e-04, 5s
+15:44:36 Bates start 0: 1 residual evals, best cost 5.949351e-04, 0s
+15:44:37 Bates start 0: 25 residual evals, best cost 3.438868e-04, 1s
+15:44:38 Bates start 0: 50 residual evals, best cost 2.648442e-04, 2s
+15:44:39 Bates start 0: 75 residual evals, best cost 2.507332e-04, 3s
+15:44:40 Bates start 0: 100 residual evals, best cost 2.497895e-04, 4s
+15:44:41 Bates start 0: 125 residual evals, best cost 2.468157e-04, 5s
+15:44:41 Bates start 0: 150 residual evals, best cost 2.445959e-04, 5s
+15:44:42 Bates start 0: 175 residual evals, best cost 2.422953e-04, 6s
+15:44:43 Bates start 0: 200 residual evals, best cost 2.414931e-04, 7s
+15:44:44 Bates start 0: 225 residual evals, best cost 2.406937e-04, 8s
+15:44:45 Bates start 0: 250 residual evals, best cost 2.405221e-04, 9s
+15:44:46 Bates start 0: 275 residual evals, best cost 2.404829e-04, 10s
+15:44:47 Bates start 0: 300 residual evals, best cost 2.404819e-04, 11s
+15:44:48 Bates start 0: 325 residual evals, best cost 2.404819e-04, 12s
+15:44:49 Bates start 0: 350 residual evals, best cost 2.404819e-04, 12s
+15:44:50 Bates start 0: 375 residual evals, best cost 2.404819e-04, 13s
+15:44:50 Bates start 1: 1 residual evals, best cost 9.447893e-04, 0s
+15:44:51 Bates start 1: 25 residual evals, best cost 5.079850e-04, 1s
+15:44:52 Bates start 1: 50 residual evals, best cost 2.694127e-04, 2s
+15:44:53 Bates start 1: 75 residual evals, best cost 2.496261e-04, 3s
+15:44:53 Bates start 1: 100 residual evals, best cost 2.477470e-04, 4s
+15:44:54 Bates start 1: 125 residual evals, best cost 2.454490e-04, 4s
+15:44:55 Bates start 1: 150 residual evals, best cost 2.429396e-04, 5s
+15:44:56 Bates start 1: 175 residual evals, best cost 2.414508e-04, 6s
+15:44:57 Bates start 1: 200 residual evals, best cost 2.409992e-04, 7s
+15:44:58 Bates start 1: 225 residual evals, best cost 2.405520e-04, 8s
+15:44:59 Bates start 1: 250 residual evals, best cost 2.404849e-04, 9s
+15:45:00 Bates start 1: 275 residual evals, best cost 2.404820e-04, 10s
+15:45:01 Bates start 1: 300 residual evals, best cost 2.404820e-04, 11s
+15:45:01 Bates start 1: 325 residual evals, best cost 2.404820e-04, 12s
+15:45:02 Bates start 1: 350 residual evals, best cost 2.404820e-04, 12s
+15:45:03 Bates start 1: 375 residual evals, best cost 2.404820e-04, 13s
+15:45:05 HB-MJ events-only stage done: cost 2.268603e-04
+15:45:05 HB-MJ joint: 1 residual evals, best cost 2.268530e-04, 0s
+15:45:06 HB-MJ joint: 25 residual evals, best cost 2.008322e-04, 1s
+15:45:07 HB-MJ joint: 50 residual evals, best cost 1.694602e-04, 2s
+15:45:08 HB-MJ joint: 75 residual evals, best cost 1.632733e-04, 3s
+15:45:09 HB-MJ joint: 100 residual evals, best cost 1.621527e-04, 4s
+15:45:10 HB-MJ joint: 125 residual evals, best cost 1.612184e-04, 5s
+15:45:11 HB-MJ joint: 150 residual evals, best cost 1.608606e-04, 6s
+15:45:12 HB-MJ joint: 175 residual evals, best cost 1.607995e-04, 7s
+15:45:13 HB-MJ joint: 200 residual evals, best cost 1.607643e-04, 8s
+15:45:14 HB-MJ joint: 225 residual evals, best cost 1.607483e-04, 9s
+15:45:15 HB-MJ joint: 250 residual evals, best cost 1.607453e-04, 10s
+15:45:16 HB-MJ joint: 275 residual evals, best cost 1.607450e-04, 11s
+15:45:16 HB-MJ joint: 300 residual evals, best cost 1.607448e-04, 11s
+15:45:17 HB-MJ joint: 325 residual evals, best cost 1.607448e-04, 12s
+15:45:18 HB-MJ joint: 350 residual evals, best cost 1.607448e-04, 13s
+15:45:19 HB-MJ joint: 375 residual evals, best cost 1.607448e-04, 14s
+15:45:20 HB-MJ joint: 400 residual evals, best cost 1.607448e-04, 15s

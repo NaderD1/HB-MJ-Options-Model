@@ -1,191 +1,140 @@
-# HB-MJ: A Heston–Bates Model with Scheduled Macro-Event Jumps for Currency Options
+# HB-MJ: a Heston–Bates model with scheduled macro-event jumps for currency options
 
-> **Status:** model mathematics implemented and validated (Garman–Kohlhagen, Heston, Bates,
-> HB-MJ; characteristic-function integration, Carr–Madan FFT, Monte Carlo cross-checks).
-> Market-data calibration and empirical results are not yet done. This README will grow into
-> the full write-up; sections marked *TBD* are placeholders.
+**Status: prototype complete.** The mathematics is implemented and tested, validated in simulation,
+and tested on public proxy data. Validation on Bloomberg OTC EUR/USD data is future work; nothing
+in this repository requires Bloomberg to run or to reproduce the reported results.
+Numerical results: **[RESULTS.md](RESULTS.md)**. Final figures: `results/figures/final/`.
 
-## Model nesting
+## Research question
 
-All models share one pricing engine and differ only in their characteristic function (CF) of
-the log-return to expiry relative to the forward, X_T = ln(S_T / F):
+Currency moves are driven by *surprises* in rates, inflation and activity, and much of that
+information arrives on known dates: FOMC and ECB decisions, US CPI and Nonfarm Payrolls. Do
+option prices concentrate risk-neutral variance on those dates, and does a model that places
+jumps at those scheduled times price short-dated options better, after penalising its extra
+parameters and out of sample, than the Heston (1993) and Bates (1996) models it extends?
 
-| Model | CF | Parameters |
+The hypothesis is about the **maturity term structure**. Total implied variance w(T) = σ²·T
+should step up as expiry crosses an event. It does not require extra smile curvature (see
+"What is original").
+
+## Models: a nested sequence
+
+Every model is a characteristic function (CF) of X_T = ln(S_T/F) plugged into one pricing
+engine. Each richer model multiplies the previous CF by one independent, compensated factor
+(φ(−i) = 1), so switching a factor off recovers the smaller model exactly (`src/models/nested.py`).
+
+| Model | Adds | Parameters |
 |---|---|---|
-| Garman–Kohlhagen (1983) | normal | vol |
-| Heston (1993) | φ_H | κ, θ, σ, ρ, v₀ |
-| Bates (1996) | φ_H · φ_J | + λ, μ_J, σ_J |
-| **HB-MJ** (this project) | φ_H · φ_J · φ_E | + σ_FOMC, σ_ECB, σ_CPI, σ_NFP |
+| **Garman–Kohlhagen (1983)** — baseline | constant vol (Black-76 on the forward) | σ |
+| **Heston (1993)** | mean-reverting stochastic variance correlated with spot | κ, θ, σ, ρ, v₀ |
+| **Bates (1996)** | Poisson jumps with lognormal size, compensated | λ, μ_J, σ_J |
+| **HB-MJ** (this project) | a jump at each **scheduled** event time τᵢ before expiry, with **stochastic size** Yᵢ ~ N(−½σ²_E, σ²_E), one σ_E per event type | σ_FOMC, σ_ECB, σ_CPI, σ_NFP |
 
-Each factor is independently compensated (φ(−i) = 1), so switching a component off recovers the
-smaller model exactly. Code: `src/models/nested.py`.
+φ_HB-MJ(u;T) = φ_Heston(u;T) · φ_Poisson(u;T) · ∏_{0<τᵢ≤T} exp(−½σ²_{E,i}·u(u+i)).
 
-**HB-MJ event component.** Each scheduled announcement *i* (FOMC, ECB, US CPI, NFP) happens at
-a known time τᵢ, but the move it causes is random: a log-jump Yᵢ ~ N(−½σ_E², σ_E²) with one σ_E
-per event type. Options expiring at T are affected by events with 0 < τᵢ ≤ T:
+Event *times* are known in advance; event *sizes* are random and only their distribution is known.
+The mean −½σ²_E makes E[e^Y] = 1, so each event leaves the forward unchanged.
 
-  φ_E(u; T) = ∏_{0 < τᵢ ≤ T} exp(−½ σ²_{E,i} · u(u + i))
+## What is original about HB-MJ, and what is not
 
-## Research hypothesis
+The scheduled-jump idea follows Dubinsky, Johannes, Kaeck & Seeger (2019, RFS) on equity
+earnings announcements, and Piazzesi (2005) on FOMC dates in bond yields. FX desks already add
+"event variance" to short-dated vol term structures. The contribution here is:
 
-**Baseline HB-MJ hypothesis (primary specification: normal event jumps).**
-Part of the risk-neutral variance priced into EUR/USD options is *concentrated on scheduled
-macro-event dates* rather than spread evenly through time. This should show up in the
-**maturity term structure**: total implied variance w(T) = σ_imp(T)² · T should rise in discrete
-steps as expiry crosses an FOMC, ECB, CPI or NFP date, beyond what a smooth
-Heston/Bates term structure produces.
+- a formal nested **Heston–Bates model with scheduled-time, stochastic-size jumps** for FX macro
+  events, with one exact rule (0 < τ ≤ T) shared by pricing and data tagging;
+- a test design that separates event variance from diffusion variance, including pooled
+  multi-date estimation and handling of events that no contract can tell apart;
+- an honest identifiability analysis.
 
-What the hypothesis does **not** claim: that event jumps add smile curvature. With normal
-event jumps, a single European expiry sees each event as an independent normal shock, which
-adds variance but no excess kurtosis; on fixed contracts it *lowers* implied-vol curvature
-(verified in `tests/test_hbmj.py`). For European pricing the event component is therefore
-equivalent to a deterministic burst of Gaussian variance on the event date — close to the
-"event-weighted variance" FX desks already use. The contribution tested here is a formal,
-nested, statistically evaluated version of that idea inside Heston–Bates. Fatter-tailed event
-distributions are deferred to *Next steps*.
+A property shown in the tests: with normal event jumps, a single European expiry sees each event as
+an independent normal shock. That adds variance but **no excess kurtosis**, so for European pricing the
+component behaves like a burst of variance on the event date. The evidence therefore lives in the
+term structure, and in hedging across events, not in smile shape.
 
-## Main HB-MJ diagnostics (for the empirical stage)
+## Pricing, simulation, calibration
 
-1. **Term-structure step.** Change in total implied variance, Δw = w(T_after) − w(T_before),
-   between expiries just before and just after each scheduled event, compared with the model's
-   σ_E² and with the smooth Bates term structure.
-2. **Event vs non-event errors.** Pricing/calibration error (IV RMSE, price MAE) for
-   event-spanning options versus non-event-spanning options, always on identical contract
-   coordinates for every model (`src/metrics.py`).
-3. **Penalized out-of-sample gain over Bates.** Incremental out-of-sample fit of HB-MJ versus
-   Bates after penalizing the extra event parameters (information criteria and held-out
-   strikes/expiries/days).
-4. **Event variance by type.** Estimated σ²_FOMC, σ²_ECB, σ²_CPI, σ²_NFP with uncertainty.
-5. **Stability over time.** Whether those event-variance estimates are stable across
-   calibration dates.
+- **Pricing** (`src/pricing_engine.py`): Lewis single-integral characteristic-function pricing with
+  adaptive Gauss–Legendre panels (production); Carr–Madan FFT (independent cross-check; it refuses to
+  silently coarsen its grid); Gil-Pelaez adaptive quadrature (reference). The Heston CF uses the
+  "Little Heston Trap" form of Albrecher et al. (2007), with cancellation-free algebra.
+- **Monte Carlo** (`src/monte_carlo.py`): full-truncation Euler for the variance, exact Poisson and
+  event jumps, antithetic variates. Used for validation only.
+- **Single-date calibration** (`src/calibration.py`): least squares on vega-weighted implied-vol errors
+  (vega normalised within each expiry), parameters in transformed space, Heston → Bates → HB-MJ
+  each started from the previous stage, multi-start, AIC/BIC, identifiability diagnostics.
+- **Pooled calibration** (`src/pooled.py`): date-specific state (v₀, θ, ρ) with shared structural and
+  event parameters. Events that no valuation time or expiry separates get one combined parameter.
+  An optional random-walk smoothness penalty on the daily state (required if every parameter is
+  date-specific). Per-fit timeouts are reported as "timed out", never "converged"; checkpointed and resumable.
+- **Clocks** (`src/timeutils.py`, `src/clocks.py`): ACT/365 calendar time is the default and is used for
+  FX. A NYSE **trading-day clock** is available for the equity proxy only: 1/252 year per trading day,
+  accrued during the regular session, weekends/holidays adding nothing, configurable overnight
+  share. Scheduled events always stay at their true timestamps.
 
-A negative result on any of these (e.g. no out-of-sample gain over Bates after penalties) is a
-valid finding and will be reported as such.
+## Data layer
 
-## Validation (done)
+- **Research source (future):** Bloomberg EUR/USD OTC surfaces (`load_bloomberg_csv`). Conventions
+  (delta type, ATM type, smile vs market strangle, premium currency, RR sign, cut, timezone) must be
+  stated in the export, and the loader refuses to guess. It covers premium discounting from the spot
+  date to delivery and an FX date roller built on sourced USD (Federal Reserve K.8 / Fedwire) and
+  EUR (TARGET2) calendars. Export and validation guide: `docs/bloomberg_export_checklist.md`,
+  `docs/bloomberg_validation_table.csv`.
+- **Proxy source (used here):** listed options from saved Yahoo Finance snapshots (`normalize_listed`),
+  with every row `is_dev_fallback=True` and flagged `proxy_not_otc_eurusd`.
+- **Event calendar:** official FOMC/ECB/CPI/NFP times in UTC (`data/events/`). It includes the
+  2025/2026 BLS funding-lapse cancellations and reschedules, and an **as-known-at-valuation**
+  vintage (`schedule_changes.csv`). Rows whose event date was unknown at the time are flagged
+  `schedule_uncertain`.
 
-**Analytic engines.** Heston matches Fang & Oosterlee (2008) benchmarks and QuantLib to ~1e-10;
-Lewis integration, Gil-Pelaez quadrature and Carr–Madan FFT agree to ≤0.2 bp of implied vol
-for every model from 1 day to 10 years. Integration is the calibration engine; the FFT is a
-cross-check (it is 8–20× slower for sparse FX strike sets).
+## Evidence, kept separate
 
-**Monte Carlo** (`src/monte_carlo.py`, `scripts/mc_validation.py`) is an independent engine
-used only for validation: full-truncation Euler for Heston variance, explicit Poisson jumps,
-explicit scheduled-event jumps on grid nodes at each event time, antithetic variates.
-10 model configurations × 4 maturities (1W–1Y) × 5 fixed strikes, 200,000 paths, 730 steps/yr:
-
-| | Contracts | \|z\| > 2 | \|z\| > 3 | Mean z |
-|---|---|---|---|---|
-| Heston, Bates (λ = 0.5, 2, 8, rare big jumps), HB-MJ (1 FOMC, event cluster, 1% FOMC, events after expiry) | 180 | 6 (3.3%) | 0 | −0.23 |
-| Heston, high vol-of-vol (Feller ratio 0.02) | 20 | 11 | 3 | **+1.65** |
-
-z = (MC − CF)/SE. For a correct CF and an unbiased simulator, z should look like N(0,1)
-(≈4.6% beyond ±2); the first row does. The second row shows **Euler discretization bias**,
-not a CF error: halving the step size removes it (1Y, ATM, bias in bp of forward):
-
-| Steps per year | Heston (Feller 0.28) | Heston high vol-of-vol (Feller 0.02) |
+| Kind | Where | What it can support |
 |---|---|---|
-| 12 | 10.8 (z = 15.9) | 86.9 (z = 107.7) |
-| 52 | 2.2 (z = 3.3) | 21.5 (z = 31.5) |
-| 365 | 0.09 (z = 0.1) | 2.3 (z = 3.7) |
-| 1460 | 0.02 (z = 0.0) | 0.5 (z = 0.8) |
+| Mathematical implementation | `tests/` (429 tests) | correctness of pricing, nesting, conventions, data handling |
+| Simulation evidence | `results/calibration`, `results/pooled` | identifiability, estimator behaviour, what data design is needed |
+| Proxy evidence (SPY, one snapshot) | `results/proxy`, `results/proxy_trading` | whether the pipeline works on real quotes; weak evidence about equity event variance |
+| OTC EUR/USD claims | — | **none yet**, pending Bloomberg data |
 
-Bias shrinks roughly in proportion to the step size and is worst when variance often hits 0
-(Feller badly violated). The Monte Carlo used for hedging experiments must therefore use
-fine steps (≥ 4 per day) when calibrated parameters strongly violate Feller.
+## Reproducibility
 
-## Data layer (built; no calibration yet)
+```
+pip install -r requirements.txt
+python -m pytest                        # full test suite
+python -m scripts.run_synthetic         # synthetic study (resumes; --force to redo)
+python -m scripts.run_proxy             # proxy study from the committed snapshots (resumes)
+python -m scripts.final_figures         # figures in results/figures/final/
+```
 
-Two tracks, one normalized schema (`src/schema.py`); calibration code reads only the schema.
+- **Seeds** are fixed constants in each script: `SEED` (calibration_recovery 20260930;
+  mc_validation 20260929; identifiability_study per-case seeds 1–4 and 7), `SEEDS = (1, 2, 3, 4)`
+  (pooled_study, heston_noise_study). Pooled and proxy fits use deterministic starts (no RNG).
+- **Resume:** the proxy study checkpoints every model fit (append-only JSONL under
+  `results/proxy*/fit_results/`) and restores finished fits on relaunch. The synthetic runner skips
+  steps whose outputs exist, and the pooled study rewrites its CSVs after every task.
+- **Data:** the proxy snapshots are committed (`data/snapshots/spy_20260929T190930Z_*`,
+  `fxe_20260929T190930Z_*`). New snapshots: `python -m scripts.snapshot_proxy SPY` (network needed).
+- Environment used: Python 3.14, numpy 2.5, scipy 1.18, pandas 3.0, Windows 11.
 
-| Track | Loader | Role |
-|---|---|---|
-| Bloomberg EUR/USD OTC surface (OVDV/OVML exports, ATM/RR/BF by tenor) | `load_bloomberg_csv` | **Research dataset** |
-| FXE ETF options (yfinance) + FRED Treasury yields | `fetch_fxe_snapshot`, `normalize_fxe` | Development fallback only (`is_dev_fallback=True`) |
+## Repository layout
 
-- Bloomberg conventions (delta type, ATM type, smile vs market butterfly, premium currency,
-  RR sign, vol units, timezone, expiry cut) must be stated in the file; the loader raises
-  `ConventionAmbiguityError` rather than guessing. Export guide: `docs/bloomberg_export_checklist.md`.
-- FXE differs from OTC EUR/USD options: American exercise, ETF (fees, share-price units),
-  listed monthly/quarterly expiries only (no 1W–3W), thin liquidity, delayed/stale Yahoo quotes,
-  and a forward inferred from put-call parity (biased by early exercise). It is used for
-  pipeline development, never for research conclusions.
-- Event calendar (`data/events/macro_events.csv`): official FOMC, ECB, CPI and NFP times,
-  stored in local time and converted to UTC; includes 2025/2026 appropriations-lapse
-  cancellations and reschedules. One inclusion rule (`src/events.py`) serves both pricing and
-  tagging.
-- **Time conventions.** Diffusion clock: T = ACT/365F calendar time from valuation to the expiry
-  cut (weekends carry diffusion variance). Event clock: each scheduled event adds σ_E² once, at
-  its timestamp, only if it falls inside the option's life; weekends add no event variance.
-- **Settlement.** Bloomberg premiums are priced as DF_USD(spot date → delivery) × Black-76 on the
-  forward to the delivery date, with T to the expiry cut. Spot/expiry/delivery dates come from
-  the export; the FX date roller (`src/fx_calendar.py`) fills them only when explicitly allowed,
-  after validation against OVML. Settlement calendars are explicit sourced tables, 2025–2030:
-  USD = days the Federal Reserve Banks (Fedwire Funds) are closed, per Federal Reserve Board K.8
-  (Saturday holidays: Banks open the preceding Friday, e.g. 3 Jul 2026); EUR = TARGET (T2) closing
-  days per the ECB. Where holidays make the month-tenor delivery→expiry inverse impossible
-  (e.g. 1M from 26 Oct 2026 across Thanksgiving), the roller returns *ambiguous* with candidates
-  rather than choosing one. Roller-vs-roller agreement on synthetic data is not an external validation.
-- **Event vintages.** Pricing and tagging use the schedule *as known at the valuation time*
-  (`data/events/schedule_changes.csv` records when each reschedule/cancellation was announced);
-  options whose event dates were genuinely unknown at valuation (e.g. during the 2025 and 2026
-  funding lapses) are flagged `schedule_uncertain`. The realized calendar is kept for ex-post
-  analysis.
-- Pre-calibration checks (`src/validation.py`): forward consistency, price/vol consistency,
-  Bloomberg smile reconstruction, delta round trip, price bounds, bid/ask, butterfly and
-  calendar arbitrage, timestamp consistency, event tags, schema, audit trail.
+```
+src/            pricing engine, models/, calibration, pooled, clocks, events, data loaders, validation
+scripts/        studies, figure scripts, snapshot tools
+tests/          pytest suite
+data/           event calendar, settlement/NYSE calendars, example & proxy snapshots
+docs/           Bloomberg export checklist and validation table
+results/        study outputs (csv/json/logs) and figures
+```
 
-## Calibration framework (synthetic validation only; no market data fitted yet)
+## Limitations and future Bloomberg validation
 
-**Single-date engine** (`src/calibration.py`): least squares on implied-vol errors (vega weights
-normalised per expiry, so short-dated contracts keep their weight), parameters optimised in
-transformed space (log / atanh / scaled linear), Heston → Bates → HB-MJ, each stage started
-from the previous one, multi-start, identifiability diagnostics. Synthetic findings
-(`results/calibration/`): Heston parameters recover to a few percent (κ weakest); Bates' λ, μ_J,
-σ_J are individually unstable but the jump variance rate and short-dated total variance are
-stable; event variance is identified only when expiries bracket the event; adjacent events with
-no separating expiry identify only their combined variance; with no pre-event expiry a
-single-date fit can land in a false optimum where diffusion variance absorbs event variance.
-Bates fitted to HB-MJ data matches the average vol level but cannot produce the discrete
-event-time step (`results/figures/bates_vs_hbmj_event_step.png`).
+See RESULTS.md §8. In short: the proxy data are one SPY snapshot, not a panel, and not FX; FXE failed
+the quality filters. Individual jump parameters (λ, μ_J, σ_J) and κ are weakly identified, so stable
+combinations are reported instead. Nearby events are identified only jointly unless an expiry or a
+valuation time separates them. The normal event-jump specification adds no kurtosis by construction.
+Bloomberg OTC EUR/USD data (a daily panel of ON–1M quotes with bid/ask and exact dates) is the planned
+real-market validation. `docs/bloomberg_export_checklist.md` states exactly what to export.
 
-**Pooled multi-date engine** (`src/pooled.py`): Heston/Bates state parameters are date-specific
-(default v0, θ, ρ; κ, σ and jump parameters shared), event variances are shared by event type
-across dates. Events that no contract in the panel can separate — no valuation time and no
-expiry between them — get one combined parameter (e.g. `combo_CPI+FOMC`). A 16:00 New York
-valuation between an FOMC (14:00 ET) and a next-day ECB separates them. Sharing by type is an
-assumption. One joint sparse least-squares problem; per-fit timeouts report "timed out", never
-"converged".
-
-Synthetic daily panels (19 Oct – 30 Nov 2026, ON/1W/2W/3W/1M, real event calendar, 0.05 vol-pt
-noise, 4 seeds; `results/pooled/`):
-
-| | Pooled HB-MJ | Single-date HB-MJ, same dates |
-|---|---|---|
-| Event-variance error (FOMC, ECB, CPI, NFP, CPI+FOMC combo) | ≤ 2.3% in every seed; exact noise-free | median FOMC −26%, p10–p90 of CPI/NFP up to +65–70% (nearby events only identified as sums on a single date) |
-| No ON tenor (single-date D3/D4 false-optimum case) | noise-free: exact; 0.05 vol pt: FOMC/ECB ±11–13%, θ poorly identified | 7% of dates in false optima |
-| Out of sample (leave 2W out) | HB-MJ 0.050 vol pts vs Bates 0.381, Heston 0.379 | — |
-
-**Daily-parameter specification.** Making every Heston/Bates parameter date-specific
-(8 per date) is weakly identified and numerically ill-conditioned: each date's κ and jump
-parameters rest on ~25 quotes, and the unregularised problem has near-flat directions.
-A temporal smoothness penalty (random-walk prior on the transformed daily parameters,
-`smooth=1e-4`) regularises the daily paths and makes pooled estimation practical; the default
-specification keeps only v0, θ, ρ date-specific. Diagnostic
-(`results/pooled/p5_all_local_diagnostic.csv`): without smoothing, the Heston and Bates stages
-took 8–9 minutes each; two Bates starts ended in different local optima (objectives 5% apart);
-and the HB-MJ stage had not converged when stopped (objective 23× the smoothed fit's). The
-smoothed all-local HB-MJ fit is already at the noise floor (IV RMSE 0.045 vol pts against 0.05
-vol-pt quote noise), so there is no material pricing gain left for the unsmoothed specification.
-Its lower Heston/Bates objectives (4–15%) come from daily parameters absorbing event variance
-that those models cannot represent — overfitting, not better pricing.
-
-## Literature, results, market context, limitations
-
-*TBD.*
-
-## Next steps (not in the baseline model)
-
-- Fatter-tailed event jumps (e.g. two-point hawkish/dovish mixture) or variance-dependent event
-  jump sizes, so events can also affect smile shape.
-- Surprise-size-dependent jumps; double Heston; rough volatility.
+**Model freeze:** Heston, Bates and the current HB-MJ specification are the final prototype models.
+No further jump distributions, mixtures or parameters are planned for this prototype.

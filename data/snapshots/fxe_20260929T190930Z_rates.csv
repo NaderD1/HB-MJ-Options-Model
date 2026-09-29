@@ -1,0 +1,5 @@
+series,tenor_years,obs_date,yield_pct,source_url,retrieved_utc
+DGS1MO,0.08333333333333333,2026-09-25,4.04,https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS1MO,2026-09-29T19:09:29.181826+00:00
+DGS3MO,0.25,2026-09-25,4.24,https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS3MO,2026-09-29T19:09:29.181826+00:00
+DGS6MO,0.5,2026-09-25,4.33,https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS6MO,2026-09-29T19:09:29.181826+00:00
+DGS1,1.0,2026-09-25,4.5,https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS1,2026-09-29T19:09:29.181826+00:00

@@ -53,7 +53,7 @@ from scipy.optimize import least_squares
 from scipy.sparse import lil_matrix
 
 from src.calibration import (
-    INVALID_RESIDUAL, SPECS_BY_NAME, CalibrationData, Objective, ParamSpec, evaluate, weights,
+    BOUND_TOL, INVALID_RESIDUAL, SPECS_BY_NAME, CalibrationData, Objective, ParamSpec, evaluate, weights,
 )
 from src.events import EVENT_TYPES, ScheduledEvent, select_events_before_expiry
 from src.models.bates import PoissonJumps
@@ -356,7 +356,7 @@ def fit_pooled(panel: Panel, spec: PooledSpec, obj: Objective, shared0: Mapping[
     r_fit = np.concatenate([prob._date_residuals(d, shared, local[d]) for d in range(prob.D)])
     names = prob.names()
     hits = tuple(n for n, zi, lo, hi in zip(names, res.x, prob.lb, prob.ub)
-                 if min(zi - lo, hi - zi) < 1e-6 * max(1.0, hi - lo) and not n.endswith("]"))
+                 if min(zi - lo, hi - zi) < BOUND_TOL * (hi - lo) and not n.endswith("]"))
     # unweighted IV RMSE over all quotes
     errs = []
     for d, pdt in enumerate(panel.dates):

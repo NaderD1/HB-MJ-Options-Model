@@ -1,0 +1,16 @@
+2026-09-29 15:41:13  model fits done 0/42  folds done 0/14  elapsed 0s  avg fold n/a  est. remaining n/a
+2026-09-29 15:41:59  model fits done 9/42  folds done 1/14  elapsed 46s  avg fold 44s  est. remaining 175s
+2026-09-29 15:42:08  model fits done 11/42  folds done 2/14  elapsed 55s  avg fold 48s  est. remaining 144s
+2026-09-29 15:42:09  model fits done 12/42  folds done 3/14  elapsed 56s  avg fold 50s  est. remaining 150s
+2026-09-29 15:42:16  model fits done 13/42  folds done 4/14  elapsed 63s  avg fold 53s  est. remaining 158s
+2026-09-29 15:43:02  model fits done 20/42  folds done 5/14  elapsed 109s  avg fold 55s  est. remaining 164s
+2026-09-29 15:43:15  model fits done 22/42  folds done 6/14  elapsed 122s  avg fold 56s  est. remaining 113s
+2026-09-29 15:43:21  model fits done 24/42  folds done 7/14  elapsed 128s  avg fold 58s  est. remaining 115s
+2026-09-29 15:43:34  model fits done 27/42  folds done 8/14  elapsed 141s  avg fold 61s  est. remaining 123s
+2026-09-29 15:44:10  model fits done 32/42  folds done 9/14  elapsed 177s  avg fold 62s  est. remaining 124s
+2026-09-29 15:44:26  model fits done 35/42  folds done 10/14  elapsed 192s  avg fold 62s  est. remaining 62s
+2026-09-29 15:44:26  model fits done 36/42  folds done 11/14  elapsed 193s  avg fold 63s  est. remaining 63s
+2026-09-29 15:44:42  model fits done 38/42  folds done 12/14  elapsed 209s  avg fold 63s  est. remaining 63s
+2026-09-29 15:45:19  model fits done 41/42  folds done 13/14  elapsed 246s  avg fold 64s  est. remaining 64s
+2026-09-29 15:45:20  model fits done 42/42  folds done 14/14  elapsed 247s  avg fold 63s  est. remaining 0s
+all folds complete
