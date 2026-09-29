@@ -94,7 +94,31 @@ Bias shrinks roughly in proportion to the step size and is worst when variance o
 (Feller badly violated). The Monte Carlo used for hedging experiments must therefore use
 fine steps (≥ 4 per day) when calibrated parameters strongly violate Feller.
 
-## Literature, data, calibration, results, market context, limitations
+## Data layer (built; no calibration yet)
+
+Two tracks, one normalized schema (`src/schema.py`); calibration code reads only the schema.
+
+| Track | Loader | Role |
+|---|---|---|
+| Bloomberg EUR/USD OTC surface (OVDV/OVML exports, ATM/RR/BF by tenor) | `load_bloomberg_csv` | **Research dataset** |
+| FXE ETF options (yfinance) + FRED Treasury yields | `fetch_fxe_snapshot`, `normalize_fxe` | Development fallback only (`is_dev_fallback=True`) |
+
+- Bloomberg conventions (delta type, ATM type, smile vs market butterfly, premium currency,
+  RR sign, vol units, timezone, expiry cut) must be stated in the file; the loader raises
+  `ConventionAmbiguityError` rather than guessing. Export guide: `docs/bloomberg_export_checklist.md`.
+- FXE differs from OTC EUR/USD options: American exercise, ETF (fees, share-price units),
+  listed monthly/quarterly expiries only (no 1W–3W), thin liquidity, delayed/stale Yahoo quotes,
+  and a forward inferred from put-call parity (biased by early exercise). It is used for
+  pipeline development, never for research conclusions.
+- Event calendar (`data/events/macro_events.csv`): official FOMC, ECB, CPI and NFP times,
+  stored in local time and converted to UTC; includes 2025/2026 appropriations-lapse
+  cancellations and reschedules. One inclusion rule (`src/events.py`) serves both pricing and
+  tagging.
+- Pre-calibration checks (`src/validation.py`): forward consistency, price/vol consistency,
+  Bloomberg smile reconstruction, delta round trip, price bounds, bid/ask, butterfly and
+  calendar arbitrage, timestamp consistency, event tags, schema, audit trail.
+
+## Literature, calibration, results, market context, limitations
 
 *TBD.*
 

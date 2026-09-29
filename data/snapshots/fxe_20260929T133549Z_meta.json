@@ -1,0 +1,8 @@
+{
+  "underlying": "FXE",
+  "spot": 104.91000366210938,
+  "spot_ts_utc": "2026-09-28T20:00:00+00:00",
+  "spot_kind": "previous_close",
+  "retrieved_utc": "2026-09-29T13:35:49.940480+00:00",
+  "source": "yfinance (Yahoo Finance; quotes may be delayed/stale)"
+}

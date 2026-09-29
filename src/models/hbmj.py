@@ -42,17 +42,12 @@ from typing import Mapping
 
 import numpy as np
 
+from src.events import EVENT_TYPES, ScheduledEvent, select_events_before_expiry
 from src.models.bates import PoissonJumps
 from src.models.heston import HestonParams
 from src.models.nested import NestedModel
 
-EVENT_TYPES: tuple[str, ...] = ("FOMC", "ECB", "CPI", "NFP")
-
-
-@dataclass(frozen=True)
-class ScheduledEvent:
-    tau: float  # year fraction from the valuation time to the announcement (same day count as T)
-    kind: str   # one of EVENT_TYPES
+__all__ = ["EVENT_TYPES", "ScheduledEvent", "ScheduledEventJumps", "event_cf", "hbmj"]
 
 
 def event_cf(u: np.ndarray, sigma_E: float) -> np.ndarray:
@@ -76,12 +71,12 @@ class ScheduledEventJumps:
             raise ValueError("sigma_E must be non-negative")
 
     def events_before(self, T: float) -> tuple[ScheduledEvent, ...]:
-        """Events that an option expiring at T is exposed to: 0 < tau <= T.
+        """Events that an option expiring at T is exposed to (0 < tau <= T).
 
-        tau <= 0 means the announcement is already public (already in the spot price).
-        The same rule is used for tagging options as 'event-spanning' in the evaluation.
+        Delegates to src.events.select_events_before_expiry -- the single rule shared with
+        the data layer's event-spanning tags.
         """
-        return tuple(e for e in self.events if 0.0 < e.tau <= T)
+        return select_events_before_expiry(self.events, T)
 
     def event_variance(self, T: float) -> float:
         """Total log-variance added by scheduled events before T: sum of sigma_E^2."""
