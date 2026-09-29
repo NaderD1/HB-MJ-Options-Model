@@ -85,6 +85,22 @@ def black76_spot_delta(
     return np.where(is_call, D_f * norm.cdf(d1), -D_f * norm.cdf(-d1))
 
 
+@dataclass(frozen=True)
+class GKParams:
+    """Constant-volatility diffusion, usable as the base of a nested CF model.
+
+    X_T = ln(S_T/F) ~ N(-vol^2 T/2, vol^2 T), so phi(u) = exp(-1/2 vol^2 T (u^2 + i u)).
+    """
+
+    vol: float
+
+    NAMES = ("vol",)
+
+    def cf(self, u: np.ndarray, T: float) -> np.ndarray:
+        u = np.asarray(u, dtype=complex)
+        return np.exp(-0.5 * self.vol**2 * T * (u * u + 1j * u))
+
+
 # --------------------------------------------------------------------------- #
 # Implied volatility
 # --------------------------------------------------------------------------- #
